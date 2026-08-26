@@ -5,6 +5,11 @@ import pandas as pd
 from src.cleaning import clean_temperature_data, normalize_column_names
 from src.data_loader import load_energy_emissions, load_world_bank_indicators
 from src.indicators import extract_key_indicators
+from src.analysis import (
+    analyze_electrification,
+    analyze_temperature_trends,
+    build_prioritization_index,
+)
 
 
 def test_load_world_bank_indicators_removes_metadata_row(tmp_path) -> None:
@@ -71,3 +76,55 @@ def test_extract_key_indicators_returns_four_families() -> None:
         list(table.columns) == ["year", "indicator", "indicator_code", "value"]
         for table in data.values()
     )
+
+
+def test_analyze_electrification_calculates_rural_urban_gap() -> None:
+    """L'ecart est calcule comme urbain moins rural."""
+    data = pd.DataFrame(
+        {
+            "year": [2020, 2020],
+            "indicator": [
+                "Access to electricity, rural (% of rural population)",
+                "Access to electricity, urban (% of urban population)",
+            ],
+            "indicator_code": ["R", "U"],
+            "value": [30.0, 70.0],
+        }
+    )
+
+    result = analyze_electrification(data)
+
+    assert result.loc[0, "rural_urban_gap"] == 40.0
+
+
+def test_analyze_temperature_trends_counts_non_missing_values() -> None:
+    """Les observations invalides ne sont pas comptees dans la moyenne."""
+    data = pd.DataFrame(
+        {
+            "date": ["2013M1", "2013M2"],
+            "villes": ["Lome", "Lome"],
+            "value": [30.0, None],
+        }
+    )
+
+    result = analyze_temperature_trends(data)
+
+    assert result.loc[0, "temperature_moyenne"] == 30.0
+    assert result.loc[0, "observations"] == 1
+
+
+def test_build_prioritization_index_returns_descending_scores() -> None:
+    """Le score de priorite est borne et trie du plus eleve au plus faible."""
+    data = pd.DataFrame(
+        {
+            "region": ["A", "B"],
+            "electrification_gap": [80.0, 10.0],
+            "cooking_dependence": [70.0, 20.0],
+            "forest_pressure": [30.0, 5.0],
+        }
+    )
+
+    result = build_prioritization_index(data)
+
+    assert result.loc[0, "region"] == "A"
+    assert result["priority_score"].between(0, 1).all()
