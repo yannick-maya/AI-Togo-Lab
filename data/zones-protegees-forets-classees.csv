@@ -1,0 +1,78 @@
+No.,Nom du champ,Question,Description,Type du champ
+1,region_nom_bdd,,xsd:string,string
+2,prefecture_nom_bdd,,xsd:string,string
+3,commune_nom_bdd,,xsd:string,string
+4,canton_nom_bdd,,xsd:string,string
+5,id,,xsd:int,int
+6,canton_id_bdd,ID du canton,xsd:string,string
+7,nom_localite,Nom de la localité (Ville + Quartier si grande ville),xsd:string,string
+8,etab_id_collecte,ID textuel de l'établissement,xsd:string,string
+9,etab_nom,Nom de la pépinière,xsd:string,string
+10,etab_creation_date,Année de création de l'établissement,xsd:string,string
+11,etab_prog,L'établissement est-il créé dans le cadre d'un programme?,xsd:string,string
+12,etab_prog_nom,"Si oui, quel programme ?",xsd:string,string
+13,org_prog_acteur,"Si oui, nom des acteurs participants au programme institutionnel",xsd:string,string
+14,interlocuteur_presence,Y a-t-il un interlocuteur?,xsd:string,string
+15,interlocuteur_responsable,L'interlocuteur est il le responsable dé l'établissement ?,xsd:string,string
+16,interlocuteur_fonction,"Si non, quelle est votre fonction ?",xsd:string,string
+17,interlocuteur_nom_prenom,"Si non, NOM Prénom",xsd:string,string
+18,interlocuteur_genre,"Si non, genre de l'interlocuteur",xsd:string,string
+19,interlocuteur_tel,"Si non, numéro de téléphone",xsd:string,string
+20,responsable_nom_prenom,NOM et Prénom du responsable,xsd:string,string
+21,responsable_genre,Genre du responsable,xsd:string,string
+22,responsable_fonction,Fonction du responsable,xsd:string,string
+23,responsable_tel,Téléphone du responsable,xsd:string,string
+24,responsable_mail,Mail du responsable,xsd:string,string
+25,responsable_annee,Année de la prise de fonction en tant que responsable,xsd:string,string
+26,domaine,,xsd:string,string
+27,domaine_prive,,xsd:string,string
+28,domaine_conflit,,xsd:string,string
+29,domaine_conflit_qui,,xsd:string,string
+30,zone_type,,xsd:string,string
+31,zone_etat,,xsd:string,string
+32,zone_activites,,xsd:string,string
+33,zone_activites_autre,,xsd:string,string
+34,org_nom,Nom de l'organisation de rattachement,xsd:string,string
+35,org_type,Type d'organisation,xsd:string,string
+36,org_type_autre,,xsd:string,string
+37,org_reconnu,,xsd:string,string
+38,secteur_prive_agrement,,xsd:string,string
+39,org_ministere_tutelle,"Si Public, Ministère, Institution ou Commune de tutelle",xsd:string,string
+40,org_numero_prive,"Si Privé, Numéro CFE",xsd:string,string
+41,org_fodes,"Si Association/ONG/syndicat uniquement, dans le registre FODES?",xsd:string,string
+42,org_fodes_num,"Si oui, numéro FODES ou équivalent",xsd:string,string
+43,org_numero_autre,Tout autre numéro d'enregistrement,xsd:string,string
+44,org_type2,Origine de l'organisation de rattachement,xsd:string,string
+45,org_type2_international,"Si internationale, pays d'origine",xsd:string,string
+46,org_qg,Localité du quartier général de l'organisation au Togo,xsd:string,string
+47,org_tierce,,xsd:string,string
+48,org_tierce_autre,,xsd:string,string
+49,finance_sub,,xsd:string,string
+50,finance_sub_detail,,xsd:string,string
+51,finance_sub_type,,xsd:string,string
+52,finance_sub_montant,,xsd:string,string
+53,finance_sub_source,,xsd:string,string
+54,finance_sub_frequence,,xsd:string,string
+55,finance_sub_annee,,xsd:string,string
+56,finance_ext,,xsd:string,string
+57,finance_ext_detail,,xsd:string,string
+58,finance_ext_type,,xsd:string,string
+59,finance_ext_montant,,xsd:string,string
+60,finance_ext_source,,xsd:string,string
+61,finance_ext_frequence,,xsd:string,string
+62,finance_ext_annee,,xsd:string,string
+63,personnel_nbr,Nombre total de personnel,xsd:int,int
+64,personnel_femme_nbr,Nombre de personnel femme,xsd:int,int
+65,personnel_homme_nbr,Nombre de personnel homme,xsd:int,int
+66,personnel_paysan,,xsd:int,int
+67,optionnel_accessible_nbr,,xsd:int,int
+68,personnel_lieudevie,,xsd:int,int
+69,vehicule_quatre_nbr,Nombre de véhicules à 4 roues,xsd:int,int
+70,vehicule_trois_nbr,Nombre de véhicules à 3 roues,xsd:int,int
+71,vehicule_deux_nbr,Nombre de véhicules à 2 roues,xsd:int,int
+72,pb,Problèmes rencontrés,xsd:string,string
+73,solution_potentielle,Potentielles solutions,xsd:string,string
+74,commentaire,Commentaires,xsd:string,string
+75,date_collecte,Date de la collecte,xsd:string,string
+76,date_mise_a_jour_collecte,Date de la mise à jour,xsd:string,string
+77,geometry,Géométrie,gml:MultiPolygon,MultiPolygon

@@ -1,0 +1,1 @@
+"""Application Streamlit du projet."""
