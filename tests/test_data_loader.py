@@ -4,6 +4,7 @@ import pandas as pd
 
 from src.cleaning import clean_temperature_data, normalize_column_names
 from src.data_loader import load_energy_emissions, load_world_bank_indicators
+from src.indicators import extract_key_indicators
 
 
 def test_load_world_bank_indicators_removes_metadata_row(tmp_path) -> None:
@@ -58,3 +59,15 @@ def test_normalize_column_names_removes_accents() -> None:
     data = normalize_column_names(pd.DataFrame({"Libellés régionaux": ["Nord"]}))
 
     assert list(data.columns) == ["libelles_regionaux"]
+
+
+def test_extract_key_indicators_returns_four_families() -> None:
+    """Les familles metier sont extraites avec un schema commun."""
+    data = extract_key_indicators(load_world_bank_indicators())
+
+    assert set(data) == {"electrification", "cooking", "forest", "energy_emissions"}
+    assert all(not table.empty for table in data.values())
+    assert all(
+        list(table.columns) == ["year", "indicator", "indicator_code", "value"]
+        for table in data.values()
+    )
