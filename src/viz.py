@@ -32,6 +32,17 @@ def sector_emissions_figure(data: pd.DataFrame) -> go.Figure:
 	)
 
 
+def cooking_figure(data: pd.DataFrame) -> go.Figure:
+	"""Construit la figure de cuisson propre et traditionnelle."""
+	long_data = data.melt(
+		id_vars="year",
+		value_vars=["wood_charcoal_dependence", "clean_cooking_access"],
+		var_name="indicator",
+		value_name="value",
+	)
+	return px.line(long_data, x="year", y="value", color="indicator")
+
+
 def temperature_figure(data: pd.DataFrame) -> go.Figure:
 	"""Construit la figure des temperatures annuelles par ville."""
 	return px.line(
