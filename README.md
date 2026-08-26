@@ -4,7 +4,7 @@ Projet de data science pour le defi 2 de Togo AI Lab : electrification, biomasse
 
 ## Etat du projet
 
-Le scaffolding de l'etape 1 est en place. Les donnees brutes fournies sont actuellement conservees dans `data/`; les chargeurs utiliseront `data/raw/` apres leur mise en place.
+Le chargement, le nettoyage, l'extraction des indicateurs, les traitements geographiques et une premiere version navigable du dashboard sont en place. Les donnees sources sont regroupees dans `data/raw/`.
 
 ## Installation
 
@@ -32,4 +32,23 @@ L'application sera lancable avec :
 streamlit run dashboard/app.py
 ```
 
-Les choix methodologiques, les limites des donnees et les recommandations seront documentes au fil des etapes suivantes.
+## Methodologie actuelle
+
+- Les sources longues sont normalisees et les valeurs vides deviennent `NaN`.
+- Les periodes de temperature comme `2013M1` sont converties en annee, mois et date mensuelle.
+- Les geometries WKT sont lues en WGS84; les surfaces sont calculees en UTM 31N (EPSG:32631).
+- Les indicateurs Banque mondiale sont regroupes en familles electrification, cuisson, forets et emissions.
+- L'indice de priorisation combine trois composantes normalisees : ecart d'electrification (40 %), dependance bois/charbon (35 %) et pression forestiere (25 %).
+
+## Limites
+
+Les indicateurs d'electrification et de cuisson ne sont pas disponibles par village ou par prefecture dans les fichiers fournis. L'indice utilise donc un proxy geographique pour la pression forestiere et ne constitue pas une decision d'investissement. Les valeurs manquantes sont conservees et exclues des agregations qui ne peuvent pas les estimer.
+
+## Validation
+
+```powershell
+python -m pytest tests/test_data_loader.py
+python -m compileall -q src dashboard tests
+```
+
+La suite actuelle couvre les chargeurs, le nettoyage, l'extraction et les fonctions analytiques principales.

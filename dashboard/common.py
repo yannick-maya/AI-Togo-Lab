@@ -25,3 +25,23 @@ def load_key_data() -> dict:
         ),
         "energy_emissions": load_energy_emissions(),
     }
+
+
+def render_global_filters(data: dict) -> tuple[int | None, str | None, str | None]:
+    """Affiche les filtres communs et retourne leurs valeurs selectionnees."""
+    indicators = data["indicators"]
+    years = sorted(
+        indicators["electrification"]["year"].dropna().astype(int).unique().tolist()
+    )
+    selected_year = st.sidebar.selectbox(
+        "Annee de reference", years, index=len(years) - 1 if years else None
+    )
+    cities = sorted(data["temperatures"]["villes"].dropna().unique().tolist())
+    selected_city = st.sidebar.selectbox("Ville", ["Toutes"] + cities)
+    regions = sorted(data["areas"]["region_nom_bdd"].dropna().unique().tolist())
+    selected_region = st.sidebar.selectbox("Region", ["Toutes"] + regions)
+    return (
+        selected_year,
+        None if selected_city == "Toutes" else selected_city,
+        None if selected_region == "Toutes" else selected_region,
+    )
