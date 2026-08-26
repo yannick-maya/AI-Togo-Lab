@@ -51,4 +51,4 @@ python -m pytest tests/test_data_loader.py
 python -m compileall -q src dashboard tests
 ```
 
-La suite actuelle couvre les chargeurs, le nettoyage, l'extraction et les fonctions analytiques principales.
+La suite actuelle contient 9 tests et couvre les chargeurs, le nettoyage, l'extraction et les fonctions analytiques principales.

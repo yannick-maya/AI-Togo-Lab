@@ -3,7 +3,15 @@
 import pandas as pd
 
 from src.cleaning import clean_temperature_data, normalize_column_names
-from src.data_loader import load_energy_emissions, load_world_bank_indicators
+from src.data_loader import (
+    load_energy_emissions,
+    load_ghg_by_sector,
+    load_protected_areas,
+    load_protected_areas_dictionary,
+    load_renewable_energy,
+    load_temperatures,
+    load_world_bank_indicators,
+)
 from src.indicators import extract_key_indicators
 from src.analysis import (
     analyze_electrification,
@@ -42,6 +50,15 @@ def test_load_energy_emissions_converts_empty_value_to_nan(tmp_path) -> None:
 
     assert pd.isna(data.loc[0, "value"])
     assert str(data["date"].dtype) == "Int64"
+
+
+def test_load_remaining_sources_have_expected_rows() -> None:
+    """Les autres chargeurs lisent les sources fournies avec leur cardinalite attendue."""
+    assert len(load_renewable_energy()) == 64
+    assert len(load_ghg_by_sector()) == 20
+    assert len(load_temperatures()) == 1680
+    assert len(load_protected_areas()) == 53
+    assert len(load_protected_areas_dictionary()) > 0
 
 
 def test_clean_temperature_data_parses_valid_and_invalid_periods() -> None:
