@@ -7,7 +7,7 @@ from dashboard.components import initialize_page, insight, kpi_card, render_main
 from src.analysis import analyze_temperature_trends, prepare_temperature_anomalies, prepare_temperature_heatmap, summarize_temperature_gradient
 from src.viz import temperature_anomaly_figure, temperature_figure, temperature_gradient_figure, temperature_heatmap_figure
 
-st.set_page_config(page_title="Climat | Togo AI Lab", page_icon="☀", layout="wide")
+st.set_page_config(page_title="Climat | Togo AI Lab", layout="wide")
 initialize_page()
 render_main_header("Climat", "Comparer les températures mensuelles des dix villes, du Sud au Nord.")
 data = load_key_data()

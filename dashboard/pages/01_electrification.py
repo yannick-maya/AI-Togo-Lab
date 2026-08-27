@@ -12,7 +12,7 @@ from dashboard.components import initialize_page, insight, kpi_card, render_main
 from src.analysis import analyze_electrification, prepare_electrification_projection, project_electrification_2030
 from src.viz import electricity_gap_figure, electrification_gap_area_figure, electrification_projection_figure, national_electricity_figure
 
-st.set_page_config(page_title="Électrification | Togo AI Lab", page_icon="⚡", layout="wide")
+st.set_page_config(page_title="Électrification | Togo AI Lab", layout="wide")
 initialize_page()
 render_main_header("Électrification", "Mesurer la fracture entre territoires urbains et ruraux.")
 data = load_key_data()

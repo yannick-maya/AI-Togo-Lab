@@ -14,7 +14,7 @@ from dashboard.content import (
 from src.analysis import analyze_electrification
 from src.viz import electricity_gap_figure
 
-st.set_page_config(page_title="Accueil | Togo AI Lab", page_icon="⚡", layout="wide")
+st.set_page_config(page_title="Accueil | Togo AI Lab", layout="wide")
 initialize_page()
 render_main_header(
     "Togo Energie & Forets",

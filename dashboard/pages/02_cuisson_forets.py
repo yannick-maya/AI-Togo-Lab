@@ -7,7 +7,7 @@ from dashboard.components import initialize_page, insight, kpi_card, render_main
 from src.analysis import prepare_cooking_composition, prepare_cooking_forest_series
 from src.viz import cooking_composition_figure, cooking_figure, cooking_forest_figure, renewable_share_figure
 
-st.set_page_config(page_title="Cuisson et forêts | Togo AI Lab", page_icon="🌿", layout="wide")
+st.set_page_config(page_title="Cuisson et forêts | Togo AI Lab", layout="wide")
 initialize_page()
 render_main_header("Cuisson et forêts", "Relier les pratiques de cuisson à la pression potentielle sur le couvert forestier.")
 data = load_key_data()

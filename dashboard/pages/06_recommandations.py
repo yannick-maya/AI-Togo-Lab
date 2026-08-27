@@ -7,7 +7,7 @@ from dashboard.components import initialize_page, insight, kpi_card, render_main
 from src.analysis import prepare_recommendation_table
 from src.viz import prioritization_bar_figure, prioritization_scatter_figure, priority_zones_figure
 
-st.set_page_config(page_title="Recommandations | Togo AI Lab", page_icon="✓", layout="wide")
+st.set_page_config(page_title="Recommandations | Togo AI Lab", layout="wide")
 initialize_page()
 render_main_header("Recommandations", "Transformer les signaux disponibles en priorités d'action explicites.")
 st.warning("Le score classe uniquement la pression forestiere relative par prefecture. Les donnees ne permettent pas une priorisation village par village ni un score multi-facteurs.")

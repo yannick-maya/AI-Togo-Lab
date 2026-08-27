@@ -7,7 +7,7 @@ from dashboard.components import initialize_page, insight, kpi_card, render_main
 from src.analysis import add_vulnerability_score, summarize_creation_years, summarize_protected_areas, summarize_vulnerability
 from src.viz import creation_year_figure, protected_areas_map_figure, regional_zone_count_figure, vulnerability_bar_figure
 
-st.set_page_config(page_title="Zones protégées | Togo AI Lab", page_icon="🌳", layout="wide")
+st.set_page_config(page_title="Zones protégées | Togo AI Lab", layout="wide")
 initialize_page()
 render_main_header("Zones protégées", "Localiser les 53 zones classées et comparer leur emprise par région.")
 all_data = load_key_data()
