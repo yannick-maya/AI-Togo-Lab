@@ -12,9 +12,14 @@ initialize_page()
 render_main_header("Zones protégées", "Localiser les 53 zones classées et comparer leur emprise par région.")
 all_data = load_key_data()
 data = all_data["areas"]
-selected_region = render_filters(all_data, show_year=False, show_city=False)[2]
+selected_region = render_filters(all_data, show_year=False, show_city=False, prefecture_filter=True, surface_filter=True)[2]
 if selected_region is not None:
 	data = data[data["region_nom_bdd"] == selected_region]
+selected_prefecture = st.session_state.get("selected_prefecture", "Toutes")
+minimum_surface = st.session_state.get("minimum_surface", 0.0)
+if selected_prefecture != "Toutes":
+	data = data[data["prefecture_nom_bdd"] == selected_prefecture]
+data = data[data["surface_km2"] >= minimum_surface]
 data = add_vulnerability_score(data)
 if data.empty:
 	show_empty_message()

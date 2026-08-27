@@ -11,9 +11,16 @@ st.set_page_config(page_title="Émissions | Togo AI Lab", layout="wide")
 initialize_page()
 render_main_header("Émissions", "Comparer le poids des secteurs et des gaz dans le bilan national 2018.")
 data = load_key_data()
-render_filters(data, show_year=False, show_city=False, show_region=False)
-table = analyze_emissions(data["ghg"])
-summary = summarize_emission_sectors(data["ghg"])
+render_filters(data, show_year=False, show_city=False, show_region=False, sector_filter=True, gas_filter=True)
+selected_sectors = st.session_state.get("selected_sectors", [])
+selected_gases = st.session_state.get("selected_gases", [])
+filtered_ghg = data["ghg"]
+if selected_sectors:
+	filtered_ghg = filtered_ghg[filtered_ghg["secteur"].isin(selected_sectors)]
+if selected_gases:
+	filtered_ghg = filtered_ghg[filtered_ghg["type"].isin(selected_gases)]
+table = analyze_emissions(filtered_ghg)
+summary = summarize_emission_sectors(filtered_ghg)
 if table.empty:
 	show_empty_message()
 else:

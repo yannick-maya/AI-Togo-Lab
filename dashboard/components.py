@@ -9,6 +9,14 @@ from config import LOGO_PATH
 from dashboard.style import inject_global_css
 
 
+def render_sidebar_brand() -> None:
+    """Affiche la marque textuelle au-dessus de la navigation."""
+    st.sidebar.markdown(
+        '<div class="sidebar-brand"><strong>Togo AI Lab</strong><span>Défi 2 · Énergie et forêts</span></div>',
+        unsafe_allow_html=True,
+    )
+
+
 def kpi_card(
     label: str,
     value: str,

@@ -9,14 +9,26 @@ from dashboard.common import (
 	show_empty_message,
 )
 from dashboard.components import initialize_page, insight, kpi_card, render_main_header
-from src.analysis import analyze_electrification, prepare_electrification_projection, project_electrification_2030
+from src.analysis import (
+	ELECTRIFICATION_GAP_MARKED_THRESHOLD,
+	ELECTRIFICATION_RECENT_OBSERVATIONS,
+	analyze_electrification,
+	build_electrification_insights,
+	prepare_electrification_projection,
+	project_electrification_2030,
+)
 from src.viz import electricity_gap_figure, electrification_gap_area_figure, electrification_projection_figure, national_electricity_figure
 
 st.set_page_config(page_title="Électrification | Togo AI Lab", layout="wide")
 initialize_page()
 render_main_header("Électrification", "Mesurer la fracture entre territoires urbains et ruraux.")
 data = load_key_data()
-selected_year, _, _ = render_filters(data, show_city=False, show_region=False)
+selected_year, _, _ = render_filters(
+	data,
+	show_city=False,
+	show_region=False,
+	display_modes=["Taux national", "Urbain vs rural", "Écart uniquement"],
+)
 table = analyze_electrification(data["indicators"]["electrification"])
 if selected_year is not None:
 	table = table[table["year"] <= selected_year]
@@ -37,8 +49,14 @@ else:
 		kpi_card("Écart urbain-rural", f"{gap:.1f} points" if gap is not None else "Donnée absente", source="Banque mondiale", accent="cooking")
 	with col3:
 		kpi_card("Projection rurale 2030", f"{projection['rural_2030']:.1f} %" if projection['rural_2030'] is not None else "Non estimable", source="Extrapolation descriptive", accent="forest")
+	display_mode = st.session_state.get("display_mode", "Urbain vs rural")
+	primary_figure = {
+		"Taux national": national_electricity_figure(table),
+		"Urbain vs rural": electricity_gap_figure(table),
+		"Écart uniquement": electrification_gap_area_figure(table),
+	}[display_mode]
 	for figure, text, kind in [
-		(electricity_gap_figure(table), "L'écart entre les taux urbain et rural mesure directement la fracture d'accès au réseau.", "warning"),
+		(primary_figure, f"Le mode « {display_mode} » adapte la lecture à l'indicateur choisi et utilise les données jusqu'en {int(table['year'].max())}.", "warning"),
 		(electrification_gap_area_figure(table), "Une aire positive persistante signifie que la convergence rurale n'a pas encore rejoint le niveau urbain.", "warning"),
 		(electrification_projection_figure(prepare_electrification_projection(projection_data)), "La trajectoire est une extrapolation linéaire; elle doit être interprétée comme un scénario indicatif, non comme une prévision.", ""),
 		(national_electricity_figure(table), "Le niveau national complète l'écart: il indique la couverture absolue de la population togolaise.", ""),
@@ -48,4 +66,13 @@ else:
 			st.plotly_chart(figure, width="stretch")
 		with insight_col:
 			insight(text, kind)
+	insights = build_electrification_insights(table)
+	if insights:
+		insight("<br>".join(f"- {line}" for line in insights))
+		st.caption(
+			f"Seuils descriptifs : écart supérieur ou égal à "
+			f"{ELECTRIFICATION_GAP_MARKED_THRESHOLD:.0f} points = fracture marquée; "
+			f"tendance calculée sur les {ELECTRIFICATION_RECENT_OBSERVATIONS} "
+			"dernières observations disponibles."
+		)
 	render_source("indicators-tgo.csv, Banque mondiale")

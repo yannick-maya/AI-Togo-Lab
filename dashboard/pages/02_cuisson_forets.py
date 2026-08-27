@@ -4,15 +4,21 @@ import streamlit as st
 
 from dashboard.common import load_key_data, render_filters, render_source, show_empty_message
 from dashboard.components import initialize_page, insight, kpi_card, render_main_header
-from src.analysis import prepare_cooking_composition, prepare_cooking_forest_series
+from src.analysis import filter_cooking_fuels, prepare_cooking_composition, prepare_cooking_forest_series
 from src.viz import cooking_composition_figure, cooking_figure, cooking_forest_figure, renewable_share_figure
 
 st.set_page_config(page_title="Cuisson et forêts | Togo AI Lab", layout="wide")
 initialize_page()
 render_main_header("Cuisson et forêts", "Relier les pratiques de cuisson à la pression potentielle sur le couvert forestier.")
 data = load_key_data()
-selected_year, _, _ = render_filters(data, show_city=False, show_region=False)
+selected_year, _, _ = render_filters(
+	data,
+	show_city=False,
+	show_region=False,
+	fuel_options=["Bois", "Charbon", "Cuisson propre"],
+)
 table = prepare_cooking_forest_series(data["indicators"]["cooking"], data["indicators"]["forest"])
+table = filter_cooking_fuels(table, st.session_state.get("selected_fuels", ["Bois", "Charbon", "Cuisson propre"]))
 renewable = data["renewable_energy"]
 composition_data = data["indicators"]["cooking"]
 if selected_year is not None:

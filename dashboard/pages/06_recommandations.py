@@ -12,11 +12,12 @@ initialize_page()
 render_main_header("Recommandations", "Transformer les signaux disponibles en priorités d'action explicites.")
 st.warning("Le score classe uniquement la pression forestiere relative par prefecture. Les donnees ne permettent pas une priorisation village par village ni un score multi-facteurs.")
 data = load_key_data()
-selected_region = render_filters(data, show_year=False, show_city=False)[2]
+selected_region = render_filters(data, show_year=False, show_city=False, top_n_filter=True)[2]
 areas = data["areas"]
 if selected_region is not None:
 	areas = areas[areas["region_nom_bdd"] == selected_region]
 table = prepare_recommendation_table(areas)
+table = table.head(st.session_state.get("top_n", 10))
 if table.empty:
 	show_empty_message()
 else:

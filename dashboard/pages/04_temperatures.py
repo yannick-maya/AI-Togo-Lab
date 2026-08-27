@@ -19,13 +19,16 @@ temperature_years = sorted(
 	.tolist()
 )
 selected_year, selected_city, _ = render_filters(
-	data, show_region=False, year_options=temperature_years, year_key="temperature_year"
+	data, show_region=False, month_filter=True, year_options=temperature_years, year_key="temperature_year"
 )
 raw = data["temperatures"]
 if selected_year is not None:
 	raw = raw[raw["date"].astype("string").str.startswith(str(selected_year))]
 if selected_city is not None:
 	raw = raw[raw["villes"] == selected_city]
+selected_months = st.session_state.get("selected_months", (1, 12))
+month_values = raw["date"].astype("string").str.extract(r"M(\d{1,2})")[0].astype(int)
+raw = raw[month_values.between(selected_months[0], selected_months[1])]
 table = analyze_temperature_trends(raw)
 heatmap = prepare_temperature_heatmap(raw)
 anomalies = prepare_temperature_anomalies(raw)

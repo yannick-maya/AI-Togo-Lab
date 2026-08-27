@@ -10,7 +10,12 @@ if str(PROJECT_ROOT) not in sys.path:
 
 import streamlit as st
 
+from dashboard.components import render_sidebar_brand
+from dashboard.style import inject_global_css
+
 st.set_page_config(page_title="Togo Energie & Forets", layout="wide")
+inject_global_css()
+render_sidebar_brand()
 
 pages = [
     st.Page("pages/00_accueil.py", title="Accueil"),

@@ -5,6 +5,10 @@ import pandas as pd
 from src.cleaning import parse_temperature_period
 
 
+ELECTRIFICATION_GAP_MARKED_THRESHOLD = 50.0
+ELECTRIFICATION_RECENT_OBSERVATIONS = 5
+
+
 def _pivot_indicators(data: pd.DataFrame) -> pd.DataFrame:
 	"""Met les indicateurs en colonnes, sans inventer les valeurs absentes."""
 	return (
@@ -27,6 +31,57 @@ def analyze_electrification(data: pd.DataFrame) -> pd.DataFrame:
 	)
 	table["rural_urban_gap"] = table[urban] - table[rural] if rural and urban else pd.NA
 	return table
+
+
+def build_electrification_insights(table: pd.DataFrame) -> list[str]:
+	"""Retourne les interpretations chiffrees de l'electrification.
+
+	Le seuil de 50 points est une convention descriptive pour qualifier une
+	fracture marquee. La tendance utilise les cinq dernieres observations
+	annuelles disponibles afin de limiter la lecture a un bruit ponctuel.
+	"""
+	lines: list[str] = []
+	if table.empty or "year" not in table:
+		return lines
+	ordered = table.dropna(subset=["year"]).sort_values("year")
+	national = next(
+		(
+			column
+			for column in ordered
+			if str(column).strip() == "Access to electricity (% of population)"
+		),
+		None,
+	)
+	if "rural_urban_gap" in ordered:
+		gaps = ordered.dropna(subset=["rural_urban_gap"])
+		if not gaps.empty:
+			latest = gaps.iloc[-1]
+			qualification = (
+				"fracture marquee"
+				if latest["rural_urban_gap"] >= ELECTRIFICATION_GAP_MARKED_THRESHOLD
+				else "ecart modere"
+			)
+			lines.append(
+				f"En {int(latest['year'])}, l'ecart urbain-rural atteint "
+				f"{latest['rural_urban_gap']:.1f} points : {qualification}."
+			)
+			recent = gaps.tail(ELECTRIFICATION_RECENT_OBSERVATIONS)
+			if len(recent) >= 2:
+				change = recent.iloc[-1]["rural_urban_gap"] - recent.iloc[0]["rural_urban_gap"]
+				direction = "hausse" if change > 0 else "baisse" if change < 0 else "stabilite"
+				lines.append(
+					f"Sur les {len(recent)} dernieres observations, l'ecart est en "
+					f"{direction} de {abs(change):.1f} points."
+				)
+	if national is not None:
+		values = ordered.dropna(subset=[national])
+		if not values.empty:
+			latest = values.iloc[-1]
+			lines.append(
+				f"Le taux national atteint {latest[national]:.1f} % en "
+				f"{int(latest['year'])}; aucune cible officielle 2030 n'est fournie."
+			)
+	return lines[:3]
 
 
 def project_electrification_2030(data: pd.DataFrame) -> dict[str, float | None]:
@@ -90,6 +145,26 @@ def analyze_cooking(data: pd.DataFrame) -> pd.DataFrame:
 		table["wood_charcoal_dependence"] = pd.NA
 	table["clean_cooking_access"] = table[clean] if clean else pd.NA
 	return table
+
+
+def filter_cooking_fuels(
+	table: pd.DataFrame, selected_fuels: list[str]
+) -> pd.DataFrame:
+	"""Recalcule les series de cuisson selon les combustibles selectionnes."""
+	result = table.copy()
+	selected_columns = {
+		"Bois": next((c for c in result if "fuel: wood" in str(c).lower()), None),
+		"Charbon": next((c for c in result if "fuel: charcoal" in str(c).lower()), None),
+	}
+	traditional = [selected_columns[fuel] for fuel in selected_fuels if selected_columns.get(fuel)]
+	result["wood_charcoal_dependence"] = (
+		result[traditional].sum(axis=1, min_count=1) if traditional else pd.NA
+	)
+	clean_column = next((c for c in result if "clean fuels" in str(c).lower()), None)
+	result["clean_cooking_access"] = (
+		result[clean_column] if "Cuisson propre" in selected_fuels and clean_column else pd.NA
+	)
+	return result
 
 
 def prepare_cooking_forest_series(

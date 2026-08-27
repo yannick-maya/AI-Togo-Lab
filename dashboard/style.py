@@ -32,6 +32,64 @@ def inject_global_css() -> None:
             background: var(--color-background);
         }}
 
+        [data-testid="stSidebar"] {{
+            background: var(--color-background);
+        }}
+
+        .sidebar-brand {{
+            padding: 0.75rem 0.6rem 0.9rem;
+            border-bottom: 1px solid var(--color-neutral);
+        }}
+
+        .sidebar-brand strong {{
+            display: block;
+            color: var(--color-forest);
+            font-size: 1.05rem;
+        }}
+
+        .sidebar-brand span {{
+            display: block;
+            margin-top: 0.2rem;
+            color: var(--color-neutral);
+            font-size: 0.75rem;
+        }}
+
+        .sidebar-section-title {{
+            margin: 0.85rem 0 0.5rem;
+            color: var(--color-forest);
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }}
+
+        [data-testid="stSidebarNav"] {{
+            padding: 0.75rem 0.35rem 0.9rem;
+            border-bottom: 1px solid var(--color-neutral);
+        }}
+
+        [data-testid="stSidebarNav"] li {{
+            margin: 0.2rem 0;
+        }}
+
+        [data-testid="stSidebarNav"] a {{
+            border-radius: 6px;
+            color: var(--color-neutral);
+            font-weight: 500;
+            transition: background-color 120ms ease, color 120ms ease;
+        }}
+
+        [data-testid="stSidebarNav"] a:hover {{
+            background: var(--color-forest-light);
+            color: var(--color-background);
+        }}
+
+        [data-testid="stSidebarNav"] a[aria-current="page"] {{
+            background: var(--color-electricity);
+            color: var(--color-background);
+            font-weight: 700;
+        }}
+
         .app-header {{
             display: flex;
             align-items: center;
