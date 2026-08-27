@@ -5,20 +5,24 @@ import streamlit as st
 from dashboard.common import (
 	load_key_data,
 	render_filters,
-	render_page_header,
 	render_source,
 	show_empty_message,
 )
-from src.analysis import analyze_electrification, project_electrification_2030
-from src.viz import electricity_gap_figure, electrification_gap_area_figure
+from dashboard.components import initialize_page, insight, kpi_card, render_main_header
+from src.analysis import analyze_electrification, prepare_electrification_projection, project_electrification_2030
+from src.viz import electricity_gap_figure, electrification_gap_area_figure, electrification_projection_figure, national_electricity_figure
 
 st.set_page_config(page_title="Électrification | Togo AI Lab", page_icon="⚡", layout="wide")
-render_page_header("Électrification", "Mesurer la fracture entre territoires urbains et ruraux.")
+initialize_page()
+render_main_header("Électrification", "Mesurer la fracture entre territoires urbains et ruraux.")
 data = load_key_data()
 selected_year, _, _ = render_filters(data, show_city=False, show_region=False)
 table = analyze_electrification(data["indicators"]["electrification"])
 if selected_year is not None:
 	table = table[table["year"] <= selected_year]
+projection_data = data["indicators"]["electrification"]
+if selected_year is not None:
+	projection_data = projection_data[projection_data["year"] <= selected_year]
 if table.empty:
 	show_empty_message()
 else:
@@ -27,10 +31,21 @@ else:
 	national = table[national_columns[0]].dropna().iloc[-1] if national_columns and not table[national_columns[0]].dropna().empty else None
 	gap = table["rural_urban_gap"].dropna().iloc[-1] if not table["rural_urban_gap"].dropna().empty else None
 	col1, col2, col3 = st.columns(3)
-	col1.metric("Accès national", f"{national:.1f} %" if national is not None else "Donnée absente")
-	col2.metric("Écart urbain-rural", f"{gap:.1f} points" if gap is not None else "Donnée absente")
-	col3.metric("Projection rurale 2030", f"{projection['rural_2030']:.1f} %" if projection['rural_2030'] is not None else "Non estimable")
-	st.plotly_chart(electricity_gap_figure(table), width="stretch")
-	st.plotly_chart(electrification_gap_area_figure(table), width="stretch")
-	st.caption("Lecture : l'écart est calculé comme le taux urbain moins le taux rural. La projection 2030 prolonge linéairement la tendance observée; elle ne constitue pas une prévision causale.")
+	with col1:
+		kpi_card("Accès national", f"{national:.1f} %" if national is not None else "Donnée absente", source="Banque mondiale", accent="primary")
+	with col2:
+		kpi_card("Écart urbain-rural", f"{gap:.1f} points" if gap is not None else "Donnée absente", source="Banque mondiale", accent="cooking")
+	with col3:
+		kpi_card("Projection rurale 2030", f"{projection['rural_2030']:.1f} %" if projection['rural_2030'] is not None else "Non estimable", source="Extrapolation descriptive", accent="forest")
+	for figure, text, kind in [
+		(electricity_gap_figure(table), "L'écart entre les taux urbain et rural mesure directement la fracture d'accès au réseau.", "warning"),
+		(electrification_gap_area_figure(table), "Une aire positive persistante signifie que la convergence rurale n'a pas encore rejoint le niveau urbain.", "warning"),
+		(electrification_projection_figure(prepare_electrification_projection(projection_data)), "La trajectoire est une extrapolation linéaire; elle doit être interprétée comme un scénario indicatif, non comme une prévision.", ""),
+		(national_electricity_figure(table), "Le niveau national complète l'écart: il indique la couverture absolue de la population togolaise.", ""),
+	]:
+		fig_col, insight_col = st.columns([2.5, 1])
+		with fig_col:
+			st.plotly_chart(figure, width="stretch")
+		with insight_col:
+			insight(text, kind)
 	render_source("indicators-tgo.csv, Banque mondiale")

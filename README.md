@@ -50,6 +50,8 @@ les deux commandes sont donc equivalentes.
 - L'indice de priorisation combine trois composantes normalisees : ecart d'electrification (40 %), dependance bois/charbon (35 %) et pression forestiere (25 %).
 - Le dashboard propose des filtres persistants par annee, ville et region lorsque la granularite de la source le permet, ainsi que des visualisations Plotly avec sources et interpretations.
 - Le logo est optionnel : il sera automatiquement affiche depuis `dashboard/assets/logo.png` lorsqu'il sera fourni.
+- Le systeme de design de `dashboard/style.py` et `dashboard/components.py` fournit une charte CSS partagee, des cartes KPI, des encarts d'insight et des bandeaux avec logo.
+- Les pages d'analyse proposent jusqu'a quatre figures complementaires : tendances, comparaisons, hierarchies, cartes ou anomalies selon l'axe traite.
 
 ## Limites
 
@@ -73,6 +75,7 @@ La suite actuelle contient 9 tests et couvre les chargeurs, le nettoyage, l'extr
 5. Ouvrir `Recommandations`, choisir `Toutes` puis une region. Le tableau et le nuage de points doivent afficher uniquement la selection.
 6. Verifier qu'une selection sans observation affiche `Aucune donnée pour cette sélection` au lieu d'un graphique vide.
 7. Verifier la sidebar : les filtres restent coherents en naviguant entre les pages. Le logo est affiche automatiquement lorsqu'il existe dans `dashboard/assets/logo.png`.
+8. Verifier chaque page : chaque graphique doit etre accompagne d'une interpretation directement a cote, et chaque carte KPI doit indiquer sa source.
 
 Pour un test de demarrage sans interaction navigateur :
 

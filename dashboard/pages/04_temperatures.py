@@ -2,12 +2,14 @@
 
 import streamlit as st
 
-from dashboard.common import load_key_data, render_filters, render_page_header, render_source, show_empty_message
-from src.analysis import analyze_temperature_trends, prepare_temperature_heatmap, summarize_temperature_gradient
-from src.viz import temperature_figure, temperature_heatmap_figure
+from dashboard.common import load_key_data, render_filters, render_source, show_empty_message
+from dashboard.components import initialize_page, insight, kpi_card, render_main_header
+from src.analysis import analyze_temperature_trends, prepare_temperature_anomalies, prepare_temperature_heatmap, summarize_temperature_gradient
+from src.viz import temperature_anomaly_figure, temperature_figure, temperature_gradient_figure, temperature_heatmap_figure
 
 st.set_page_config(page_title="Climat | Togo AI Lab", page_icon="☀", layout="wide")
-render_page_header("Climat", "Comparer les températures mensuelles des dix villes, du Sud au Nord.")
+initialize_page()
+render_main_header("Climat", "Comparer les températures mensuelles des dix villes, du Sud au Nord.")
 data = load_key_data()
 selected_year, selected_city, _ = render_filters(data, show_region=False)
 raw = data["temperatures"]
@@ -17,6 +19,7 @@ if selected_city is not None:
 	raw = raw[raw["villes"] == selected_city]
 table = analyze_temperature_trends(raw)
 heatmap = prepare_temperature_heatmap(raw)
+anomalies = prepare_temperature_anomalies(raw)
 if selected_city is not None:
 	table = table[table["villes"] == selected_city]
 if table.empty:
@@ -24,9 +27,20 @@ if table.empty:
 else:
 	gradient = summarize_temperature_gradient(raw)
 	col1, col2 = st.columns(2)
-	col1.metric("Villes analysées", f"{gradient['villes'].nunique()}")
-	col2.metric("Température moyenne", f"{table['temperature_moyenne'].mean():.1f} °C")
-	st.plotly_chart(temperature_figure(table), width="stretch")
-	st.plotly_chart(temperature_heatmap_figure(heatmap), width="stretch")
-	st.caption("Lecture : la heatmap restitue la saisonnalité moyenne; le filtre année est appliqué avant les deux graphiques.")
+	with col1:
+		kpi_card("Villes analysées", f"{gradient['villes'].nunique()}", source="Série températures", accent="temperature")
+	with col2:
+		kpi_card("Température moyenne", f"{table['temperature_moyenne'].mean():.1f} °C", source="Série températures", accent="temperature")
+	figures = [
+		(temperature_figure(table), "La courbe compare les niveaux thermiques annuels des villes retenues par le filtre.", ""),
+		(temperature_heatmap_figure(heatmap), "La heatmap révèle les mois les plus chauds et les plus frais pour chaque ville.", ""),
+		(temperature_gradient_figure(gradient), "Le classement thermique fournit une lecture synthétique du gradient Sud-Nord; il est ordonné par température moyenne faute de latitude dans la source.", "warning"),
+		(temperature_anomaly_figure(anomalies), "Une anomalie positive indique un mois plus chaud que la moyenne historique de la ville; une anomalie négative indique l'inverse.", ""),
+	]
+	for figure, text, kind in figures:
+		fig_col, insight_col = st.columns([2.5, 1])
+		with fig_col:
+			st.plotly_chart(figure, width="stretch")
+		with insight_col:
+			insight(text, kind)
 	render_source("observationdata-yvlucze.csv, températures mensuelles des villes")

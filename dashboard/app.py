@@ -10,48 +10,51 @@ if str(PROJECT_ROOT) not in sys.path:
 
 import streamlit as st
 
-from src.data_loader import load_world_bank_indicators
+from dashboard.common import load_key_data, render_filters, render_source
+from dashboard.components import initialize_page, insight, kpi_card, render_main_header
+from dashboard.content import (
+	APPROACH_TEXT,
+	APPROACH_TITLE,
+	CONTEXT_TEXT,
+	CONTEXT_TITLE,
+	EXPLORE_TEXT,
+)
 from src.analysis import analyze_electrification
-from src.indicators import extract_key_indicators
+from src.viz import electricity_gap_figure
 
-
-@st.cache_data
-def load_indicators() -> dict:
-	"""Charge les indicateurs metier une seule fois par session."""
-	return extract_key_indicators(load_world_bank_indicators())
-
-st.set_page_config(page_title="Togo Energie & Forets", layout="wide")
-st.title("Togo Energie & Forets")
-st.caption("Tableau de bord d'analyse de l'electrification, de l'energie et des forets")
-
-indicators = load_indicators()
-years = sorted(
-	indicators["electrification"]["year"].dropna().astype(int).unique().tolist()
+st.set_page_config(page_title="Togo Energie & Forets", page_icon="⚡", layout="wide")
+initialize_page()
+render_main_header(
+	"Togo Energie & Forets",
+	"Eclairer la transition energetique et la protection des forets au Togo.",
 )
-if years:
-	selected_year = st.sidebar.selectbox("Annee de reference", years, index=len(years) - 1)
-else:
-	selected_year = None
+data = load_key_data()
+selected_year, _, _ = render_filters(data, show_city=False, show_region=False)
+electrification = analyze_electrification(data["indicators"]["electrification"])
+selected = electrification[electrification["year"] == selected_year]
+coverage_columns = [
+	column for column in selected if str(column).strip() == "Access to electricity (% of population)"
+]
+coverage = selected[coverage_columns].stack().dropna() if coverage_columns else None
+gap = selected["rural_urban_gap"].dropna()
 
-electrification = analyze_electrification(indicators["electrification"])
-if selected_year is not None:
-	electrification = electrification[electrification["year"] == selected_year]
-coverage = electrification[
-	[
-		column
-		for column in electrification.columns
-		if str(column).strip() == "Access to electricity (% of population)"
-	]
-].stack().dropna()
-gap = electrification["rural_urban_gap"].dropna()
+st.markdown(f"### {CONTEXT_TITLE}")
+st.write(CONTEXT_TEXT)
+st.markdown(f"### {APPROACH_TITLE}")
+st.write(APPROACH_TEXT)
 
-col1, col2, col3 = st.columns(3)
-col1.metric("Acces national a l'electricite", f"{coverage.iloc[0]:.1f} %" if not coverage.empty else "Donnee absente")
-col2.metric("Ecart rural-urbain", f"{gap.iloc[0]:.1f} points" if not gap.empty else "Donnee absente")
-col3.metric("Indicateurs disponibles", f"{sum(len(table) for table in indicators.values()):,}")
+col1, col2, col3, col4 = st.columns(4)
+with col1:
+	kpi_card("Accès national", f"{coverage.iloc[0]:.1f} %" if coverage is not None and not coverage.empty else "Donnée absente", source="Banque mondiale", accent="primary")
+with col2:
+	kpi_card("Écart rural-urbain", f"{gap.iloc[0]:.1f} points" if not gap.empty else "Donnée absente", source="Banque mondiale", accent="cooking")
+with col3:
+	kpi_card("Indicateurs disponibles", f"{sum(len(table) for table in data['indicators'].values()):,}", source="Sources du projet", accent="electricity")
+with col4:
+	kpi_card("Zones protégées", f"{len(data['areas'])}", source="Données géographiques", accent="forest")
 
-st.subheader("Perimetre des donnees")
-st.write(
-	"Utilisez les pages laterales pour explorer les axes d'analyse. Les valeurs absentes "
-	"sont exclues des calculs et signalees lorsqu'elles ne permettent pas un KPI."
-)
+st.markdown("### Vue d'ensemble")
+st.plotly_chart(electricity_gap_figure(electrification), width="stretch")
+insight("La courbe donne le premier signal de la fracture territoriale; les pages détaillées permettent d'explorer ses déterminants et les zones de conservation.")
+render_source("indicators-tgo.csv et fichier géographique des zones protégées")
+st.info(EXPLORE_TEXT)

@@ -51,6 +51,28 @@ def project_electrification_2030(data: pd.DataFrame) -> dict[str, float | None]:
 	return result
 
 
+def prepare_electrification_projection(data: pd.DataFrame) -> pd.DataFrame:
+	"""Prepare les trajectoires observees et extrapolees jusqu'en 2030."""
+	table = analyze_electrification(data)
+	series = table[["year"] + [c for c in table if "rural" in str(c).lower() or "urban" in str(c).lower()]].copy()
+	projection = project_electrification_2030(data)
+	last_year = int(table["year"].dropna().max()) if not table["year"].dropna().empty else 2023
+	for label in ("rural", "urban"):
+		column = next((c for c in series if label in str(c).lower()), None)
+		if column is None:
+			continue
+		series[f"{label}_projection"] = series[column]
+		end = projection[f"{label}_2030"]
+		if end is not None:
+			future = pd.DataFrame({"year": range(last_year + 1, 2031)})
+			start = series.loc[series["year"] == last_year, column].dropna()
+			if not start.empty:
+				future[f"{label}_projection"] = start.iloc[0] + (end - start.iloc[0]) * (future["year"] - last_year) / (2030 - last_year)
+				series = series.merge(future, on="year", how="outer", suffixes=("", "_future"))
+				series[f"{label}_projection"] = series[f"{label}_projection"].fillna(series.pop(f"{label}_projection_future"))
+	return series.sort_values("year")
+
+
 def analyze_cooking(data: pd.DataFrame) -> pd.DataFrame:
 	"""Calcule la dependance au bois/charbon et l'acces a la cuisson propre."""
 	table = _pivot_indicators(data)
@@ -81,6 +103,27 @@ def prepare_cooking_forest_series(
 	else:
 		forest["forest_area_sq_km"] = forest[forest_column]
 	return cooking.merge(forest[["year", "forest_area_sq_km"]], on="year", how="outer").sort_values("year")
+
+
+def prepare_cooking_composition(data: pd.DataFrame) -> pd.DataFrame:
+	"""Prepare la composition des combustibles pour la derniere annee disponible."""
+	table = _pivot_indicators(data)
+	if table.empty:
+		return pd.DataFrame(columns=["fuel", "share"])
+	fuel_columns = [column for column in table.columns if "main cooking fuel:" in str(column).lower()]
+	if not fuel_columns:
+		return pd.DataFrame(columns=["fuel", "share"])
+	available = table.dropna(subset=fuel_columns, how="all").sort_values("year")
+	if available.empty:
+		return pd.DataFrame(columns=["fuel", "share"])
+	latest = available.iloc[-1]
+	result = pd.DataFrame(
+		{
+			"fuel": [str(column).split(":", 1)[1].split("(", 1)[0].strip().title() for column in fuel_columns],
+			"share": [latest[column] for column in fuel_columns],
+		}
+	).dropna(subset=["share"])
+	return result.sort_values("share", ascending=False)
 
 
 def analyze_emissions(data: pd.DataFrame) -> pd.DataFrame:
@@ -139,6 +182,14 @@ def summarize_temperature_gradient(data: pd.DataFrame) -> pd.DataFrame:
 	)
 
 
+def prepare_temperature_anomalies(data: pd.DataFrame) -> pd.DataFrame:
+	"""Calcule l'anomalie mensuelle par rapport a la moyenne de chaque ville."""
+	parsed = parse_temperature_period(data).dropna(subset=["villes", "date_mois", "value"])
+	parsed["ville_mean"] = parsed.groupby("villes")["value"].transform("mean")
+	parsed["anomaly"] = parsed["value"] - parsed["ville_mean"]
+	return parsed[["villes", "date_mois", "value", "anomaly"]].sort_values("date_mois")
+
+
 def summarize_protected_areas(data: pd.DataFrame) -> pd.DataFrame:
 	"""Resume les zones protegees par region et prefecture."""
 	required = {"region_nom_bdd", "prefecture_nom_bdd", "surface_km2"}
@@ -166,6 +217,32 @@ def add_vulnerability_score(data: pd.DataFrame) -> pd.DataFrame:
 		0.7 * result["surface_score"] + 0.3 * result["zone_count_score"]
 	)
 	return result
+
+
+def summarize_vulnerability(data: pd.DataFrame) -> pd.DataFrame:
+	"""Agrege le score de vulnerabilite par region et prefecture."""
+	result = add_vulnerability_score(data)
+	return (
+		result.groupby(["region_nom_bdd", "prefecture_nom_bdd"], as_index=False)
+		.agg(vulnerability_score=("vulnerability_score", "mean"), surface_km2=("surface_km2", "sum"), zones_protegees=("etab_nom", "size"))
+		.sort_values("vulnerability_score", ascending=False)
+	)
+
+
+def summarize_creation_years(data: pd.DataFrame) -> pd.DataFrame:
+	"""Resume les zones par annee de creation quand celle-ci est exploitable."""
+	result = data.copy()
+	result["creation_year"] = pd.to_numeric(
+		result["etab_creation_date"].astype("string").str.extract(r"(\d{4})")[0],
+		errors="coerce",
+	).astype("Int64")
+	return (
+		result.dropna(subset=["creation_year"])
+		.groupby("creation_year", as_index=False)
+		.size()
+		.rename(columns={"size": "zones"})
+		.sort_values("creation_year")
+	)
 
 
 def _min_max_scale(values: pd.Series) -> pd.Series:
@@ -221,3 +298,13 @@ def build_prioritization_index(
 		for column in ("electrification_gap", "cooking_dependence", "forest_pressure")
 	)
 	return grouped.sort_values("priority_score", ascending=False).reset_index(drop=True)
+
+
+def prepare_recommendation_table(data: pd.DataFrame) -> pd.DataFrame:
+	"""Construit la table de classement et ajoute le nombre de zones protegees."""
+	result = build_prioritization_index(data)
+	zone_counts = data.groupby("prefecture_nom_bdd").size()
+	result["zones_protegees"] = (
+		result["prefecture_nom_bdd"].map(zone_counts).fillna(0).astype(int)
+	)
+	return result
