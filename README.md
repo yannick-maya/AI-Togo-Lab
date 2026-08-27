@@ -38,6 +38,9 @@ cd dashboard
 streamlit run app.py
 ```
 
+Depuis `dashboard`, activer auparavant le venv racine si necessaire :
+`..\.venv\Scripts\Activate.ps1`.
+
 Le point d'entree ajoute automatiquement la racine du projet au chemin Python;
 les deux commandes sont donc equivalentes.
 
@@ -45,6 +48,7 @@ les deux commandes sont donc equivalentes.
 
 - Les sources longues sont normalisees et les valeurs vides deviennent `NaN`.
 - Les periodes de temperature comme `2013M1` sont converties en annee, mois et date mensuelle.
+- La source temperature couvre actuellement 2013-2019; la page Climat utilise cette plage independamment des annees d'electrification.
 - Les geometries WKT sont lues en WGS84; les surfaces sont calculees en UTM 31N (EPSG:32631).
 - Les indicateurs Banque mondiale sont regroupes en familles electrification, cuisson, forets et emissions.
 - L'indice de priorisation combine trois composantes normalisees : ecart d'electrification (40 %), dependance bois/charbon (35 %) et pression forestiere (25 %).

@@ -11,10 +11,19 @@ st.set_page_config(page_title="Climat | Togo AI Lab", page_icon="☀", layout="w
 initialize_page()
 render_main_header("Climat", "Comparer les températures mensuelles des dix villes, du Sud au Nord.")
 data = load_key_data()
-selected_year, selected_city, _ = render_filters(data, show_region=False)
+temperature_years = sorted(
+	data["temperatures"]["date"].astype("string").str.extract(r"^(\d{4})")[0]
+	.dropna()
+	.astype(int)
+	.unique()
+	.tolist()
+)
+selected_year, selected_city, _ = render_filters(
+	data, show_region=False, year_options=temperature_years, year_key="temperature_year"
+)
 raw = data["temperatures"]
 if selected_year is not None:
-	raw = raw[raw["date"].astype(str).str.startswith(str(selected_year))]
+	raw = raw[raw["date"].astype("string").str.startswith(str(selected_year))]
 if selected_city is not None:
 	raw = raw[raw["villes"] == selected_city]
 table = analyze_temperature_trends(raw)

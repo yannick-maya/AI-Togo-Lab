@@ -40,13 +40,15 @@ def render_filters(
     show_year: bool = True,
     show_city: bool = True,
     show_region: bool = True,
+    year_options: list[int] | None = None,
+    year_key: str = "global_year",
 ) -> tuple[int | None, str | None, str | None]:
     """Affiche uniquement les filtres pertinents pour une page."""
     if LOGO_PATH.exists():
-        st.sidebar.image(str(LOGO_PATH), width=150)
+        st.sidebar.image(str(LOGO_PATH), width=90)
     st.sidebar.caption("Togo AI Lab | Défi 2")
     indicators = data["indicators"]
-    years = sorted(
+    years = year_options or sorted(
         indicators["electrification"]["year"].dropna().astype(int).unique().tolist()
     )
     selected_year = None
@@ -55,7 +57,7 @@ def render_filters(
             "Année de référence",
             years,
             index=len(years) - 1 if years else None,
-            key="global_year",
+            key=year_key,
         )
     cities = sorted(data["temperatures"]["villes"].dropna().unique().tolist())
     selected_city = "Toutes"

@@ -19,17 +19,18 @@ def kpi_card(
     """Affiche une carte KPI compacte et sourcee."""
     delta_html = f'<div class="kpi-delta">{delta}</div>' if delta else ""
     source_html = f'<div class="kpi-source">Source : {source}</div>' if source else ""
-    st.markdown(
-        f"""
+    card_html = f"""
         <div class="kpi-card accent-{accent}">
             <div class="kpi-label">{label}</div>
             <div class="kpi-value">{value}</div>
             {delta_html}
             {source_html}
         </div>
-        """,
-        unsafe_allow_html=True,
-    )
+        """
+    if hasattr(st, "html"):
+        st.html(card_html)
+    else:
+        st.markdown(card_html, unsafe_allow_html=True)
 
 
 def insight(text: str, kind: str = "") -> None:
