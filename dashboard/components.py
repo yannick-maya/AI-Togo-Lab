@@ -45,21 +45,13 @@ def render_main_header(
     logo_path: Path = LOGO_PATH,
 ) -> None:
     """Affiche le bandeau principal avec logo optionnel."""
-    logo_html = ""
-    if logo_path.exists():
-        logo_html = f'<img src="{logo_path.as_uri()}" alt="Logo institutionnel">'
-    st.markdown(
-        f"""
-        <header class="app-header">
-            {logo_html}
-            <div>
-                <h1>{title}</h1>
-                <p>{subtitle}</p>
-            </div>
-        </header>
-        """,
-        unsafe_allow_html=True,
-    )
+    logo_column, text_column = st.columns([0.8, 5], vertical_alignment="center")
+    with logo_column:
+        if logo_path.exists():
+            st.image(str(logo_path), width=92)
+    with text_column:
+        st.markdown(f"# {title}")
+        st.caption(subtitle)
 
 
 def apply_layout(
