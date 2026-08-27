@@ -32,10 +32,10 @@ else:
 		(prioritization_bar_figure(table), "Le classement horizontal rend immédiatement visibles les préfectures en tête de priorisation.", ""),
 		(priority_zones_figure(table), "Le nombre de zones protégées donne un repère opérationnel pour organiser les diagnostics des préfectures prioritaires.", ""),
 	]
-	for figure, text, kind in figures:
+	for figure_index, (figure, text, kind) in enumerate(figures):
 		fig_col, insight_col = st.columns([2.5, 1])
 		with fig_col:
-			st.plotly_chart(figure, width="stretch")
+			st.plotly_chart(figure, width="stretch", key=f"recommendations_figure_{figure_index}")
 		with insight_col:
 			insight(text, kind)
 	st.dataframe(table, width="stretch", hide_index=True)

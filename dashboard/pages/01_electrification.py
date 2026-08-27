@@ -55,15 +55,15 @@ else:
 		"Urbain vs rural": electricity_gap_figure(table),
 		"Écart uniquement": electrification_gap_area_figure(table),
 	}[display_mode]
-	for figure, text, kind in [
+	for figure_index, (figure, text, kind) in enumerate([
 		(primary_figure, f"Le mode « {display_mode} » adapte la lecture à l'indicateur choisi et utilise les données jusqu'en {int(table['year'].max())}.", "warning"),
 		(electrification_gap_area_figure(table), "Une aire positive persistante signifie que la convergence rurale n'a pas encore rejoint le niveau urbain.", "warning"),
 		(electrification_projection_figure(prepare_electrification_projection(projection_data)), "La trajectoire est une extrapolation linéaire; elle doit être interprétée comme un scénario indicatif, non comme une prévision.", ""),
 		(national_electricity_figure(table), "Le niveau national complète l'écart: il indique la couverture absolue de la population togolaise.", ""),
-	]:
+	]):
 		fig_col, insight_col = st.columns([2.5, 1])
 		with fig_col:
-			st.plotly_chart(figure, width="stretch")
+			st.plotly_chart(figure, width="stretch", key=f"electrification_figure_{figure_index}")
 		with insight_col:
 			insight(text, kind)
 	insights = build_electrification_insights(table)

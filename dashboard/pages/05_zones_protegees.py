@@ -37,10 +37,10 @@ else:
 		(vulnerability_bar_figure(vulnerability), "Le classement par préfecture rend le score comparable et facilite la priorisation des diagnostics de terrain.", "warning"),
 		(creation_year_figure(creation), "Seules les années de création renseignées sont affichées; les valeurs `Nsp` sont exclues plutôt que transformées en zéro.", ""),
 	]
-	for figure, text, kind in figures:
+	for figure_index, (figure, text, kind) in enumerate(figures):
 		fig_col, insight_col = st.columns([2.5, 1])
 		with fig_col:
-			st.plotly_chart(figure, width="stretch")
+			st.plotly_chart(figure, width="stretch", key=f"protected_areas_figure_{figure_index}")
 		with insight_col:
 			insight(text, kind)
 	render_source("file-zones-protegees-forets-classees-*.csv, données géographiques WGS84")

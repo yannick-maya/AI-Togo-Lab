@@ -48,7 +48,7 @@ with col4:
     kpi_card("Zones protégées", f"{len(data['areas'])}", source="Données géographiques", accent="forest")
 
 st.markdown("### Vue d'ensemble")
-st.plotly_chart(electricity_gap_figure(electrification), width="stretch")
+st.plotly_chart(electricity_gap_figure(electrification), width="stretch", key="home_electricity_summary")
 insight("La courbe donne le premier signal de la fracture territoriale; les pages détaillées permettent d'explorer ses déterminants et les zones de conservation.")
 render_source("indicators-tgo.csv et fichier géographique des zones protégées")
 st.info(EXPLORE_TEXT)

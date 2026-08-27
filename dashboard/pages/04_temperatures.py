@@ -49,10 +49,10 @@ else:
 		(temperature_gradient_figure(gradient), "Le classement thermique fournit une lecture synthétique du gradient Sud-Nord; il est ordonné par température moyenne faute de latitude dans la source.", "warning"),
 		(temperature_anomaly_figure(anomalies), "Une anomalie positive indique un mois plus chaud que la moyenne historique de la ville; une anomalie négative indique l'inverse.", ""),
 	]
-	for figure, text, kind in figures:
+	for figure_index, (figure, text, kind) in enumerate(figures):
 		fig_col, insight_col = st.columns([2.5, 1])
 		with fig_col:
-			st.plotly_chart(figure, width="stretch")
+			st.plotly_chart(figure, width="stretch", key=f"temperature_figure_{figure_index}")
 		with insight_col:
 			insight(text, kind)
 	render_source("observationdata-yvlucze.csv, températures mensuelles des villes")

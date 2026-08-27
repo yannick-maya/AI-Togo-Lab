@@ -41,10 +41,10 @@ else:
 		(renewable_share_figure(trenewable), "La part des combustibles renouvelables situe la biomasse dans le mix énergétique global.", ""),
 		(cooking_composition_figure(prepare_cooking_composition(composition_data)), "Cette composition identifie les combustibles dominants à la dernière année observée dans la sélection.", ""),
 	]
-	for figure, text, kind in figures:
+	for figure_index, (figure, text, kind) in enumerate(figures):
 		fig_col, insight_col = st.columns([2.5, 1])
 		with fig_col:
-			st.plotly_chart(figure, width="stretch")
+			st.plotly_chart(figure, width="stretch", key=f"cooking_figure_{figure_index}")
 		with insight_col:
 			insight(text, kind)
 	render_source("indicators-tgo.csv et série énergie renouvelable")

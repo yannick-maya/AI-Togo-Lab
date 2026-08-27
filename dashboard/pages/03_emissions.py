@@ -36,10 +36,10 @@ else:
 		(energy_emissions_figure(data["energy_emissions"]), "La série longue suit les émissions de CO2 de la production électrique jusqu'à 2023, en excluant les années sans valeur.", "warning"),
 		(emissions_share_figure(summary), "La part sectorielle met en évidence le poids relatif de l'Énergie dans le bilan total disponible.", "alert"),
 	]
-	for figure, text, kind in figures:
+	for figure_index, (figure, text, kind) in enumerate(figures):
 		fig_col, insight_col = st.columns([2.5, 1])
 		with fig_col:
-			st.plotly_chart(figure, width="stretch")
+			st.plotly_chart(figure, width="stretch", key=f"emissions_figure_{figure_index}")
 		with insight_col:
 			insight(text, kind)
 	render_source("observationdata-xorttne.csv et série CO2 énergie")
