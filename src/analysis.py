@@ -253,58 +253,28 @@ def _min_max_scale(values: pd.Series) -> pd.Series:
 	return (values - minimum) / (maximum - minimum)
 
 
-def build_prioritization_index(
-	data: pd.DataFrame,
-	weights: dict[str, float] | None = None,
-) -> pd.DataFrame:
-	"""Construit un indice de priorisation regional ou prefectoral.
+def build_forest_pressure_index(data: pd.DataFrame) -> pd.DataFrame:
+	"""Construit un score relatif de pression forestiere par prefecture.
 
-	Les variables sont normalisees entre 0 et 1 puis combinees. Par defaut,
-	``electrification_gap``, ``cooking_dependence`` et ``forest_pressure``
-	recoivent respectivement 40 %, 35 % et 25 %. Les donnees fournies ne
-	mesurent pas ces facteurs a l'echelle locale : en leur absence, la surface
-	et le nombre de zones protegees servent uniquement de proxy de pression
-	de conservation. Le score ne classe donc pas des villages et ne remplace
-	pas une enquete de terrain.
+	Le score utilise uniquement la surface des zones protegees disponible a
+	l'echelle infranationale. Les donnees fournies ne contiennent pas de taux
+	d'electrification ni de dependance a la cuisson par region ou prefecture;
+	aucune valeur nationale n'est dupliquee artificiellement. Le score est donc
+	un outil de reperage de la pression forestiere, pas un indice multi-facteurs
+	ni une priorisation villageoise.
 	"""
-	group_columns = [
-		column
-		for column in ("region", "prefecture", "region_nom_bdd", "prefecture_nom_bdd")
-		if column in data.columns
-	]
-	if not group_columns:
-		raise KeyError("Une colonne region ou prefecture est obligatoire")
-	result = data.copy()
-	if "surface_km2" in result.columns:
-		result["forest_pressure"] = result["surface_km2"]
-	elif "forest_pressure" not in result.columns:
-		result["forest_pressure"] = 0.0
-	if "cooking_dependence" not in result.columns:
-		result["cooking_dependence"] = 0.0
-	if "electrification_gap" not in result.columns:
-		result["electrification_gap"] = 0.0
-	grouped = result.groupby(group_columns, as_index=False).agg(
-		electrification_gap=("electrification_gap", "mean"),
-		cooking_dependence=("cooking_dependence", "mean"),
-		forest_pressure=("forest_pressure", "sum"),
+	required = {"region_nom_bdd", "prefecture_nom_bdd", "surface_km2"}
+	missing = required.difference(data.columns)
+	if missing:
+		raise KeyError(f"Colonnes absentes: {', '.join(sorted(missing))}")
+	grouped = (
+		data.groupby(["region_nom_bdd", "prefecture_nom_bdd"], as_index=False)
+		.agg(forest_pressure=("surface_km2", "sum"), zones_protegees=("surface_km2", "size"))
 	)
-	weights = weights or {
-		"electrification_gap": 0.40,
-		"cooking_dependence": 0.35,
-		"forest_pressure": 0.25,
-	}
-	grouped["priority_score"] = sum(
-		weights.get(column, 0.0) * _min_max_scale(grouped[column])
-		for column in ("electrification_gap", "cooking_dependence", "forest_pressure")
-	)
-	return grouped.sort_values("priority_score", ascending=False).reset_index(drop=True)
+	grouped["forest_pressure_score"] = _min_max_scale(grouped["forest_pressure"])
+	return grouped.sort_values("forest_pressure_score", ascending=False).reset_index(drop=True)
 
 
 def prepare_recommendation_table(data: pd.DataFrame) -> pd.DataFrame:
-	"""Construit la table de classement et ajoute le nombre de zones protegees."""
-	result = build_prioritization_index(data)
-	zone_counts = data.groupby("prefecture_nom_bdd").size()
-	result["zones_protegees"] = (
-		result["prefecture_nom_bdd"].map(zone_counts).fillna(0).astype(int)
-	)
-	return result
+	"""Construit la table de classement de pression forestiere."""
+	return build_forest_pressure_index(data)

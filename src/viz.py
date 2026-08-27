@@ -230,26 +230,26 @@ def prioritization_scatter_figure(data: pd.DataFrame) -> go.Figure:
 	return _styled(px.scatter(
 		data,
 		x="forest_pressure",
-		y="priority_score",
+		y="forest_pressure_score",
 		size="zones_protegees" if "zones_protegees" in data else None,
 		color="region_nom_bdd" if "region_nom_bdd" in data else None,
 		hover_name="prefecture_nom_bdd" if "prefecture_nom_bdd" in data else None,
-		title="Priorisation : pression forestière et score composite",
-		labels={"forest_pressure": "Surface forestière protégée (km²)", "priority_score": "Score de priorité"},
-	), "Priorisation : pression forestière et score composite")
+		title="Pression forestière et score relatif",
+		labels={"forest_pressure": "Surface forestière protégée (km²)", "forest_pressure_score": "Score relatif"},
+	), "Pression forestière et score relatif")
 
 
 def prioritization_bar_figure(data: pd.DataFrame) -> go.Figure:
 	"""Construit le classement des prefectures par score."""
-	return _styled(px.bar(data.sort_values("priority_score"), x="priority_score", y="prefecture_nom_bdd", orientation="h", color="priority_score", title="Classement des préfectures", labels={"priority_score": "Score de priorité", "prefecture_nom_bdd": "Préfecture"}, color_continuous_scale="YlOrRd"), "Classement des préfectures")
+	return _styled(px.bar(data.sort_values("forest_pressure_score"), x="forest_pressure_score", y="prefecture_nom_bdd", orientation="h", color="forest_pressure_score", title="Classement des préfectures par pression forestière", labels={"forest_pressure_score": "Score relatif", "prefecture_nom_bdd": "Préfecture"}, color_continuous_scale="YlOrRd"), "Classement des préfectures par pression forestière")
 
 
 def prioritization_components_figure(data: pd.DataFrame) -> go.Figure:
 	"""Construit la decomposition des composantes du score."""
-	long_data = data.melt(id_vars="prefecture_nom_bdd", value_vars=["electrification_gap", "cooking_dependence", "forest_pressure"], var_name="component", value_name="value")
+	long_data = data.melt(id_vars="prefecture_nom_bdd", value_vars=["forest_pressure"], var_name="component", value_name="value")
 	return _styled(px.bar(long_data, x="value", y="prefecture_nom_bdd", color="component", orientation="h", barmode="group", title="Composantes du score par préfecture", labels={"value": "Valeur de la composante", "prefecture_nom_bdd": "Préfecture", "component": "Composante"}), "Composantes du score par préfecture")
 
 
 def priority_zones_figure(data: pd.DataFrame) -> go.Figure:
 	"""Construit le nombre de zones des prefectures prioritaires."""
-	return _styled(px.bar(data.sort_values("zones_protegees"), x="zones_protegees", y="prefecture_nom_bdd", orientation="h", color="priority_score", title="Zones protégées par préfecture prioritaire", labels={"zones_protegees": "Nombre de zones", "prefecture_nom_bdd": "Préfecture"}, color_continuous_scale="YlOrRd"), "Zones protégées par préfecture prioritaire")
+	return _styled(px.bar(data.sort_values("zones_protegees"), x="zones_protegees", y="prefecture_nom_bdd", orientation="h", color="forest_pressure_score", title="Zones protégées par préfecture exposée", labels={"zones_protegees": "Nombre de zones", "prefecture_nom_bdd": "Préfecture"}, color_continuous_scale="YlOrRd"), "Zones protégées par préfecture exposée")

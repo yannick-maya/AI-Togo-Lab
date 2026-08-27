@@ -16,7 +16,7 @@ from src.indicators import extract_key_indicators
 from src.analysis import (
     analyze_electrification,
     analyze_temperature_trends,
-    build_prioritization_index,
+    build_forest_pressure_index,
 )
 
 
@@ -130,18 +130,18 @@ def test_analyze_temperature_trends_counts_non_missing_values() -> None:
     assert result.loc[0, "observations"] == 1
 
 
-def test_build_prioritization_index_returns_descending_scores() -> None:
-    """Le score de priorite est borne et trie du plus eleve au plus faible."""
+def test_build_forest_pressure_index_uses_real_area_schema() -> None:
+    """Le score forestier accepte le schema reel des zones et est trie."""
     data = pd.DataFrame(
         {
-            "region": ["A", "B"],
-            "electrification_gap": [80.0, 10.0],
-            "cooking_dependence": [70.0, 20.0],
-            "forest_pressure": [30.0, 5.0],
+            "region_nom_bdd": ["A", "B"],
+            "prefecture_nom_bdd": ["A1", "B1"],
+            "surface_km2": [30.0, 5.0],
         }
     )
 
-    result = build_prioritization_index(data)
+    result = build_forest_pressure_index(data)
 
-    assert result.loc[0, "region"] == "A"
-    assert result["priority_score"].between(0, 1).all()
+    assert result.loc[0, "region_nom_bdd"] == "A"
+    assert result.loc[0, "prefecture_nom_bdd"] == "A1"
+    assert result["forest_pressure_score"].between(0, 1).all()
