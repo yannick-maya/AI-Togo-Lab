@@ -31,6 +31,15 @@ L'application sera lancable avec :
 ```powershell
 streamlit run dashboard/app.py
 ```
+Elle peut aussi etre lancee depuis le dossier `dashboard` :
+
+```powershell
+cd dashboard
+streamlit run app.py
+```
+
+Le point d'entree ajoute automatiquement la racine du projet au chemin Python;
+les deux commandes sont donc equivalentes.
 
 ## Methodologie actuelle
 
@@ -54,3 +63,21 @@ python -m compileall -q src dashboard tests
 ```
 
 La suite actuelle contient 9 tests et couvre les chargeurs, le nettoyage, l'extraction et les fonctions analytiques principales. Le dashboard a aussi ete compile et demarre en mode headless pendant les validations.
+
+### Procedure de test manuel
+
+1. Lancer Streamlit avec l'une des commandes ci-dessus et ouvrir l'URL locale affichee, generalement `http://localhost:8501`.
+2. Ouvrir la page `Electrification`, choisir successivement la derniere annee disponible, une annee intermediaire puis la premiere annee disponible. La courbe et l'aire de l'ecart doivent changer.
+3. Ouvrir la page `Climat`, choisir `Toutes` puis deux villes differentes. La courbe et la heatmap doivent se filtrer sur la ville choisie.
+4. Ouvrir `Zones protegees`, choisir `Toutes` puis deux regions differentes. Le nombre de points, la surface et l'histogramme regional doivent changer.
+5. Ouvrir `Recommandations`, choisir `Toutes` puis une region. Le tableau et le nuage de points doivent afficher uniquement la selection.
+6. Verifier qu'une selection sans observation affiche `Aucune donnée pour cette sélection` au lieu d'un graphique vide.
+7. Verifier la sidebar : les filtres restent coherents en naviguant entre les pages. Le logo est affiche automatiquement lorsqu'il existe dans `dashboard/assets/logo.png`.
+
+Pour un test de demarrage sans interaction navigateur :
+
+```powershell
+streamlit run dashboard/app.py --server.headless true --server.port 8511
+```
+
+Arreter ensuite le serveur avec `Ctrl+C`.
