@@ -29,6 +29,28 @@ def analyze_electrification(data: pd.DataFrame) -> pd.DataFrame:
 	return table
 
 
+def project_electrification_2030(data: pd.DataFrame) -> dict[str, float | None]:
+	"""Projette lineairement les taux rural et urbain jusqu'en 2030.
+
+	La projection est une extrapolation descriptive, pas une prevision causale.
+	"""
+	table = analyze_electrification(data).dropna(subset=["year"])
+	result: dict[str, float | None] = {}
+	for label in ("rural", "urban"):
+		column = next((c for c in table if label in str(c).lower()), None)
+		if column is None:
+			result[f"{label}_2030"] = None
+			continue
+		points = table[["year", column]].dropna()
+		if len(points) < 2:
+			result[f"{label}_2030"] = None
+			continue
+		model = points.set_index("year")[column].sort_index()
+		slope = (model.iloc[-1] - model.iloc[0]) / (model.index[-1] - model.index[0])
+		result[f"{label}_2030"] = float(model.iloc[-1] + slope * (2030 - model.index[-1]))
+	return result
+
+
 def analyze_cooking(data: pd.DataFrame) -> pd.DataFrame:
 	"""Calcule la dependance au bois/charbon et l'acces a la cuisson propre."""
 	table = _pivot_indicators(data)
@@ -47,6 +69,20 @@ def analyze_cooking(data: pd.DataFrame) -> pd.DataFrame:
 	return table
 
 
+def prepare_cooking_forest_series(
+	 cooking_data: pd.DataFrame, forest_data: pd.DataFrame
+) -> pd.DataFrame:
+	"""Assemble les tendances cuisson et surface forestiere par annee."""
+	cooking = analyze_cooking(cooking_data)
+	forest = _pivot_indicators(forest_data)
+	forest_column = next((c for c in forest if "forest area (sq. km)" in str(c).lower()), None)
+	if forest_column is None:
+		forest["forest_area_sq_km"] = pd.NA
+	else:
+		forest["forest_area_sq_km"] = forest[forest_column]
+	return cooking.merge(forest[["year", "forest_area_sq_km"]], on="year", how="outer").sort_values("year")
+
+
 def analyze_emissions(data: pd.DataFrame) -> pd.DataFrame:
 	"""Agrege les GES 2018 par secteur et par type de gaz."""
 	required = {"secteur", "type", "value"}
@@ -60,6 +96,14 @@ def analyze_emissions(data: pd.DataFrame) -> pd.DataFrame:
 	)
 
 
+def summarize_emission_sectors(data: pd.DataFrame) -> pd.DataFrame:
+	"""Ajoute total et part de chaque secteur dans le bilan GES."""
+	result = analyze_emissions(data)
+	sector_totals = result.groupby("secteur", as_index=False)["emissions_gg"].sum()
+	sector_totals["part_total"] = sector_totals["emissions_gg"] / sector_totals["emissions_gg"].sum() * 100
+	return sector_totals.sort_values("emissions_gg", ascending=False)
+
+
 def analyze_temperature_trends(data: pd.DataFrame) -> pd.DataFrame:
 	"""Resume les temperatures mensuelles par ville et par annee."""
 	parsed = parse_temperature_period(data)
@@ -70,6 +114,28 @@ def analyze_temperature_trends(data: pd.DataFrame) -> pd.DataFrame:
 	return (
 		parsed.groupby(["villes", "annee"], dropna=False, as_index=False)["value"]
 		.agg(temperature_moyenne="mean", observations="count")
+	)
+
+
+def prepare_temperature_heatmap(data: pd.DataFrame) -> pd.DataFrame:
+	"""Calcule les temperatures moyennes par ville et par mois."""
+	parsed = parse_temperature_period(data)
+	return (
+		parsed.dropna(subset=["villes", "mois", "value"])
+		.groupby(["villes", "mois"], as_index=False)["value"]
+		.mean()
+		.rename(columns={"value": "temperature_moyenne"})
+	)
+
+
+def summarize_temperature_gradient(data: pd.DataFrame) -> pd.DataFrame:
+	"""Resume la temperature moyenne par ville pour lire le gradient nord-sud."""
+	parsed = parse_temperature_period(data)
+	return (
+		parsed.groupby("villes", as_index=False)["value"]
+		.mean()
+		.rename(columns={"value": "temperature_moyenne"})
+		.sort_values("temperature_moyenne", ascending=False)
 	)
 
 
@@ -87,6 +153,19 @@ def summarize_protected_areas(data: pd.DataFrame) -> pd.DataFrame:
 		)
 		.sort_values("surface_protegee_km2", ascending=False)
 	)
+
+
+def add_vulnerability_score(data: pd.DataFrame) -> pd.DataFrame:
+	"""Ajoute un score relatif combinant surface et densite de zones protegees."""
+	result = data.copy()
+	result["surface_score"] = _min_max_scale(result["surface_km2"].fillna(0))
+	result["zone_count_score"] = _min_max_scale(
+		result.groupby("region_nom_bdd")["region_nom_bdd"].transform("size")
+	)
+	result["vulnerability_score"] = (
+		0.7 * result["surface_score"] + 0.3 * result["zone_count_score"]
+	)
+	return result
 
 
 def _min_max_scale(values: pd.Series) -> pd.Series:

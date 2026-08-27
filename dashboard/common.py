@@ -2,6 +2,7 @@
 
 import streamlit as st
 
+from config import LOGO_PATH
 from src.data_loader import (
     load_energy_emissions,
     load_ghg_by_sector,
@@ -29,19 +30,59 @@ def load_key_data() -> dict:
 
 def render_global_filters(data: dict) -> tuple[int | None, str | None, str | None]:
     """Affiche les filtres communs et retourne leurs valeurs selectionnees."""
+    return render_filters(data)
+
+
+def render_filters(
+    data: dict,
+    show_year: bool = True,
+    show_city: bool = True,
+    show_region: bool = True,
+) -> tuple[int | None, str | None, str | None]:
+    """Affiche uniquement les filtres pertinents pour une page."""
+    if LOGO_PATH.exists():
+        st.sidebar.image(str(LOGO_PATH), width=150)
+    st.sidebar.caption("Togo AI Lab | Défi 2")
     indicators = data["indicators"]
     years = sorted(
         indicators["electrification"]["year"].dropna().astype(int).unique().tolist()
     )
-    selected_year = st.sidebar.selectbox(
-        "Annee de reference", years, index=len(years) - 1 if years else None
-    )
+    selected_year = None
+    if show_year:
+        selected_year = st.sidebar.selectbox(
+            "Année de référence",
+            years,
+            index=len(years) - 1 if years else None,
+            key="global_year",
+        )
     cities = sorted(data["temperatures"]["villes"].dropna().unique().tolist())
-    selected_city = st.sidebar.selectbox("Ville", ["Toutes"] + cities)
+    selected_city = "Toutes"
+    if show_city:
+        selected_city = st.sidebar.selectbox("Ville", ["Toutes"] + cities, key="global_city")
     regions = sorted(data["areas"]["region_nom_bdd"].dropna().unique().tolist())
-    selected_region = st.sidebar.selectbox("Region", ["Toutes"] + regions)
+    selected_region = "Toutes"
+    if show_region:
+        selected_region = st.sidebar.selectbox(
+            "Région", ["Toutes"] + regions, key="global_region"
+        )
+    st.sidebar.caption("Les filtres modifient les données affichées sur cette page.")
     return (
         selected_year,
         None if selected_city == "Toutes" else selected_city,
         None if selected_region == "Toutes" else selected_region,
     )
+
+
+def render_page_header(title: str, context: str) -> None:
+    """Affiche l'en-tête commun d'une page d'analyse."""
+    st.markdown(f"## {title}\n\n_{context}_")
+
+
+def render_source(source: str) -> None:
+    """Affiche la source d'un visuel ou d'une section."""
+    st.caption(f"Source : {source}")
+
+
+def show_empty_message() -> None:
+    """Explique explicitement une selection sans observation."""
+    st.info("Aucune donnée pour cette sélection.")

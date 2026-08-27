@@ -4,7 +4,7 @@ Projet de data science pour le defi 2 de Togo AI Lab : electrification, biomasse
 
 ## Etat du projet
 
-Le chargement, le nettoyage, l'extraction des indicateurs, les traitements geographiques et une premiere version navigable du dashboard sont en place. Les donnees sources sont regroupees dans `data/raw/`.
+Le chargement, le nettoyage, l'extraction des indicateurs, les traitements geographiques et une version professionnelle navigable du dashboard sont en place. Les donnees sources sont regroupees dans `data/raw/`.
 
 ## Installation
 
@@ -39,6 +39,8 @@ streamlit run dashboard/app.py
 - Les geometries WKT sont lues en WGS84; les surfaces sont calculees en UTM 31N (EPSG:32631).
 - Les indicateurs Banque mondiale sont regroupes en familles electrification, cuisson, forets et emissions.
 - L'indice de priorisation combine trois composantes normalisees : ecart d'electrification (40 %), dependance bois/charbon (35 %) et pression forestiere (25 %).
+- Le dashboard propose des filtres persistants par annee, ville et region lorsque la granularite de la source le permet, ainsi que des visualisations Plotly avec sources et interpretations.
+- Le logo est optionnel : il sera automatiquement affiche depuis `dashboard/assets/logo.png` lorsqu'il sera fourni.
 
 ## Limites
 
@@ -51,4 +53,4 @@ python -m pytest tests/test_data_loader.py
 python -m compileall -q src dashboard tests
 ```
 
-La suite actuelle contient 9 tests et couvre les chargeurs, le nettoyage, l'extraction et les fonctions analytiques principales.
+La suite actuelle contient 9 tests et couvre les chargeurs, le nettoyage, l'extraction et les fonctions analytiques principales. Le dashboard a aussi ete compile et demarre en mode headless pendant les validations.
