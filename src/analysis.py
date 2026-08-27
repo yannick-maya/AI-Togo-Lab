@@ -83,10 +83,11 @@ def analyze_cooking(data: pd.DataFrame) -> pd.DataFrame:
 	clean = next(
 		(column for column in table if "clean fuels" in str(column).lower()), None
 	)
-	table["wood_charcoal_dependence"] = sum(
-		(table[column].fillna(0) for column in (wood, charcoal) if column),
-		start=0,
-	)
+	available_fuels = [column for column in (wood, charcoal) if column]
+	if available_fuels:
+		table["wood_charcoal_dependence"] = table[available_fuels].sum(axis=1, min_count=1)
+	else:
+		table["wood_charcoal_dependence"] = pd.NA
 	table["clean_cooking_access"] = table[clean] if clean else pd.NA
 	return table
 

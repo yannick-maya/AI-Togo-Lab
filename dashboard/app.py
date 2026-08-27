@@ -10,18 +10,14 @@ if str(PROJECT_ROOT) not in sys.path:
 
 import streamlit as st
 
-from config import LOGO_PATH
-
 st.set_page_config(page_title="Togo Energie & Forets", layout="wide")
-if LOGO_PATH.exists():
-    st.logo(str(LOGO_PATH), size="small")
 
 pages = [
     st.Page("pages/00_accueil.py", title="Accueil"),
     st.Page("pages/01_electrification.py", title="Électrification"),
-    st.Page("pages/02_cuisson_forets.py", title="Cuisson et forêts"),
     st.Page("pages/03_emissions.py", title="Émissions"),
     st.Page("pages/04_temperatures.py", title="Climat"),
+    st.Page("pages/02_cuisson_forets.py", title="Cuisson et forêts"),
     st.Page("pages/05_zones_protegees.py", title="Zones protégées"),
     st.Page("pages/06_recommandations.py", title="Recommandations"),
 ]
