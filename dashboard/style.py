@@ -73,19 +73,26 @@ def inject_global_css() -> None:
         }}
 
         [data-testid="stSidebarNav"] a {{
+            padding: 0.55rem 0.7rem;
             border-radius: 6px;
             color: var(--color-neutral);
             font-weight: 500;
             transition: background-color 120ms ease, color 120ms ease;
         }}
 
-        [data-testid="stSidebarNav"] a:hover {{
-            background: var(--color-forest-light);
+        [data-testid="stSidebarNav"] a:not([aria-current="page"]):hover {{
+            background: var(--color-electricity-light);
             color: var(--color-background);
         }}
 
+        [data-testid="stSidebarNav"] a:focus-visible {{
+            outline: 2px solid var(--color-cooking);
+            outline-offset: 2px;
+        }}
+
         [data-testid="stSidebarNav"] a[aria-current="page"] {{
-            background: var(--color-electricity);
+            background: var(--color-forest);
+            box-shadow: inset 4px 0 0 var(--color-cooking);
             color: var(--color-background);
             font-weight: 700;
         }}
