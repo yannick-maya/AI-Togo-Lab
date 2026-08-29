@@ -290,6 +290,86 @@ def prepare_cooking_forest_series(
 	return cooking.merge(forest[["year", "forest_area_sq_km"]], on="year", how="outer").sort_values("year")
 
 
+def compute_cooking_forest_correlation(series: pd.DataFrame) -> dict:
+	"""Correlation entre dependance bois/charbon et surface forestiere.
+
+	Calcule la correlation sur les niveaux ET sur les variations annuelles
+	(differences premieres), car deux series temporelles tendancielles
+	peuvent afficher une correlation de niveaux trompeuse (correlation
+	fallacieuse / spurious regression) meme sans lien reel. La correlation
+	sur les differences est plus informative sur une co-evolution reelle.
+
+	Chaque correlation (Pearson) renvoie r, p-value et n (nombre de paires
+	non manquantes). Sous n < 3, la correlation n'est pas exploitable et
+	renvoie None : un r calcule sur 2 points ne vaut rien et un test de
+	significativite sur si peu d'observations ne serait pas fiable.
+	"""
+	keys = ("dependence", "forest")
+	if not {"wood_charcoal_dependence", "forest_area_sq_km"}.issubset(series.columns):
+		return {
+			"levels_r": None, "levels_p": None, "levels_n": 0,
+			"changes_r": None, "changes_p": None, "changes_n": 0,
+		}
+	work = series.copy()
+	work["dependence"] = pd.to_numeric(work["wood_charcoal_dependence"], errors="coerce")
+	work["forest"] = pd.to_numeric(work["forest_area_sq_km"], errors="coerce")
+	levels = work.dropna(subset=list(keys))
+	changes = work.dropna(subset=list(keys)).diff()
+	changes = changes.dropna(subset=list(keys))
+	levels_r = levels_p = levels_n = None
+	changes_r = changes_p = changes_n = None
+	levels_n = len(levels)
+	if levels_n >= TREND_MIN_OBSERVATIONS:
+		levels_r, levels_p = stats.pearsonr(levels["dependence"], levels["forest"])
+	changes_n = len(changes)
+	if changes_n >= TREND_MIN_OBSERVATIONS:
+		changes_r, changes_p = stats.pearsonr(changes["dependence"], changes["forest"])
+	return {
+		"levels_r": float(levels_r) if levels_r is not None else None,
+		"levels_p": float(levels_p) if levels_p is not None else None,
+		"levels_n": levels_n,
+		"changes_r": float(changes_r) if changes_r is not None else None,
+		"changes_p": float(changes_p) if changes_p is not None else None,
+		"changes_n": changes_n,
+	}
+
+
+def build_cooking_forest_correlation_insight(series: pd.DataFrame) -> str:
+	"""Phrase d'interpretation prudente de la correlation cuisson/foret.
+
+	Expose r, p-value et n des deux calculs (niveaux et variations), rappelle
+	que la correlation sur les niveaux peut etre fallacieuse quand les deux
+	series suivent une tendance de fond, et ne conclut jamais a une causalite.
+	"""
+	corr = compute_cooking_forest_correlation(series)
+	if corr["levels_n"] < TREND_MIN_OBSERVATIONS and corr["changes_n"] < TREND_MIN_OBSERVATIONS:
+		return (
+			f"Corrélation cuisson/forêt : <b>données insuffisantes</b>. "
+			f"Seulement {corr['levels_n']} annee(s) de chevauchement "
+			f"bois-charbon vs forêt adherent aux familles (il en faut au moins "
+			f"{TREND_MIN_OBSERVATIONS}); un lien ne peut ni etre etabli ni etre "
+			"ecarte sur si peu d'observations."
+		)
+	lines: list[str] = []
+	if corr["levels_n"] >= TREND_MIN_OBSERVATIONS:
+		lines.append(
+			f"Sur les <b>niveaux</b> (n = {corr['levels_n']} annees) : "
+			f"r = {corr['levels_r']:.2f}, p = {corr['levels_p']:.3f}."
+		)
+	if corr["changes_n"] >= TREND_MIN_OBSERVATIONS:
+		lines.append(
+			f"Sur les <b>variations annuelles</b> (.diff(), n = {corr['changes_n']}) : "
+			f"r = {corr['changes_r']:.2f}, p = {corr['changes_p']:.3f}."
+		)
+	lines.append(
+		"La correlation sur les niveaux peut etre trompeuse quand les deux series "
+		"partagent une tendance de fond sans lien reel (regression fallacieuse); "
+		"celle sur les variations est plus fiable pour lire une co-evolution. "
+		"La lecture de ces coefficients n'etablit pas une relation causale."
+	)
+	return "<br>".join(lines)
+
+
 def prepare_cooking_composition(data: pd.DataFrame) -> pd.DataFrame:
 	"""Prepare la composition des combustibles pour la derniere annee disponible."""
 	table = _pivot_indicators(data)
@@ -343,6 +423,41 @@ def analyze_temperature_trends(data: pd.DataFrame) -> pd.DataFrame:
 		parsed.groupby(["villes", "annee"], dropna=False, as_index=False)["value"]
 		.agg(temperature_moyenne="mean", observations="count")
 	)
+
+
+def compute_national_temperature_trend(data: pd.DataFrame) -> dict[str, float | int | None]:
+	"""Tendance de la temperature moyenne nationale par annee, par regression OLS.
+
+	La temperature moyenne nationale est la moyenne inter-villes de chaque annee.
+	Le niveau national est plus robuste que la serie d'une ville seule car il
+	lisse le bruit stationnel, tout en conservant la profondeur temporelle (n
+	annees). Retourne la pente en °C/an et en °C/decennie, le R², la p-value et
+	le nombre d'annees, ou des valeurs None si n < 3.
+	"""
+	trends = analyze_temperature_trends(data)
+	if trends.empty:
+		return {"slope_degc_an": None, "slope_degc_dec": None, "r2": None, "p_value": None, "n": 0}
+	national = (
+		trends.dropna(subset=["annee", "temperature_moyenne"])
+		.groupby("annee", as_index=False)["temperature_moyenne"]
+		.mean()
+	)
+	trend = compute_linear_trend(national["annee"], national["temperature_moyenne"])
+	if trend["slope"] is None:
+		return {
+			"slope_degc_an": None,
+			"slope_degc_dec": None,
+			"r2": None,
+			"p_value": None,
+			"n": trend["n"],
+		}
+	return {
+		"slope_degc_an": float(trend["slope"]),
+		"slope_degc_dec": float(trend["slope"] * 10),
+		"r2": float(trend["r_value"] ** 2),
+		"p_value": float(trend["p_value"]),
+		"n": int(trend["n"]),
+	}
 
 
 def prepare_temperature_heatmap(data: pd.DataFrame) -> pd.DataFrame:

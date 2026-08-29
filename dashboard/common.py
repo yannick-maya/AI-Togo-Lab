@@ -34,6 +34,11 @@ def render_global_filters(data: dict) -> tuple[int | None, str | None, str | Non
     return render_filters(data)
 
 
+def _chunk(items: list, size: int = 4) -> list[list]:
+    """Decoupe une liste en sous-listes de taille au plus `size`."""
+    return [items[i : i + size] for i in range(0, len(items), size)]
+
+
 def render_filters(
     data: dict,
     show_year: bool = True,
@@ -50,97 +55,131 @@ def render_filters(
     year_options: list[int] | None = None,
     year_key: str = "global_year",
 ) -> tuple[int | None, str | None, str | None]:
-    """Affiche uniquement les filtres pertinents pour une page."""
-    st.sidebar.divider()
-    st.sidebar.markdown(
-        '<div class="sidebar-section-title">Filtres</div>', unsafe_allow_html=True
+    """Affiche uniquement les filtres pertinents pour une page, dans le corps.
+
+    Les contrôles sont rendus dans une barre horizontale (.filter-navbar) sous
+    l'en-tête, et plus dans le sidebar. Les clés de session_state et le
+    comportement de filtrage restent strictement identiques a l'ancienne
+    version sidebar.
+    """
+    st.markdown(
+        '<div class="filter-navbar__title">Filtres</div>', unsafe_allow_html=True
     )
-    indicators = data["indicators"]
-    years = year_options or sorted(
-        indicators["electrification"]["year"].dropna().astype(int).unique().tolist()
-    )
-    selected_year = None
-    if show_year:
-        selected_year = st.sidebar.selectbox(
-            "Année de référence",
-            years,
-            index=len(years) - 1 if years else None,
-            key=year_key,
+    with st.container(key="filter_navbar"):
+        controls: list[tuple[str, callable]] = []
+        indicators = data["indicators"]
+        years = year_options or sorted(
+            indicators["electrification"]["year"].dropna().astype(int).unique().tolist()
         )
-    cities = sorted(data["temperatures"]["villes"].dropna().unique().tolist())
-    selected_city = "Toutes"
-    if show_city:
-        selected_city = st.sidebar.selectbox(
-            "Ville", ["Toutes"] + cities, key="global_city"
-        )
-    regions = sorted(data["areas"]["region_nom_bdd"].dropna().unique().tolist())
-    selected_region = "Toutes"
-    if show_region:
-        selected_region = st.sidebar.selectbox(
-            "Région", ["Toutes"] + regions, key="global_region"
-        )
-    if display_modes:
-        st.sidebar.radio("Mode d'affichage", display_modes, key="display_mode")
-    if fuel_options:
-        st.sidebar.multiselect(
-            "Combustibles à afficher",
-            fuel_options,
-            default=fuel_options,
-            key="selected_fuels",
-        )
-    if sector_filter:
-        sectors = sorted(data["ghg"]["secteur"].dropna().unique().tolist())
-        st.sidebar.multiselect(
-            "Secteurs", sectors, default=sectors, key="selected_sectors"
-        )
-    if gas_filter:
-        gases = sorted(data["ghg"]["type"].dropna().unique().tolist())
-        st.sidebar.multiselect(
-            "Types de gaz", gases, default=gases, key="selected_gases"
-        )
-    if month_filter:
-        st.sidebar.slider(
-            "Mois inclus",
-            min_value=1,
-            max_value=12,
-            value=(1, 12),
-            key="selected_months",
-        )
-    if prefecture_filter:
-        filtered_areas = data["areas"]
-        if selected_region != "Toutes":
-            filtered_areas = filtered_areas[
-                filtered_areas["region_nom_bdd"] == selected_region
-            ]
-        prefectures = sorted(
-            filtered_areas["prefecture_nom_bdd"].dropna().unique().tolist()
-        )
-        st.sidebar.selectbox(
-            "Préfecture", ["Toutes"] + prefectures, key="selected_prefecture"
-        )
-    if surface_filter:
-        maximum = float(data["areas"]["surface_km2"].max())
-        st.sidebar.slider(
-            "Surface minimale (km²)",
-            min_value=0.0,
-            max_value=maximum,
-            value=0.0,
-            step=max(maximum / 100, 0.01),
-            key="minimum_surface",
-        )
-    if top_n_filter:
-        st.sidebar.slider(
-            "Préfectures affichées",
-            min_value=5,
-            max_value=20,
-            value=10,
-            key="top_n",
-        )
-    st.sidebar.caption("Les filtres modifient les données affichées sur cette page.")
+        selected_year = None
+        if show_year:
+            def _year():
+                return st.selectbox(
+                    "Année de référence",
+                    years,
+                    index=len(years) - 1 if years else None,
+                    key=year_key,
+                )
+            controls.append(("Année de référence", _year))
+        if show_city:
+            cities = sorted(data["temperatures"]["villes"].dropna().unique().tolist())
+            def _city():
+                return st.selectbox("Ville", ["Toutes"] + cities, key="global_city")
+            controls.append(("Ville", _city))
+        if show_region:
+            regions = sorted(data["areas"]["region_nom_bdd"].dropna().unique().tolist())
+            def _region():
+                return st.selectbox("Région", ["Toutes"] + regions, key="global_region")
+            controls.append(("Région", _region))
+        if display_modes:
+            def _mode():
+                return st.radio("Mode d'affichage", display_modes, key="display_mode", horizontal=True)
+            controls.append(("Mode d'affichage", _mode))
+        if fuel_options:
+            def _fuels():
+                return st.multiselect(
+                    "Combustibles à afficher",
+                    fuel_options,
+                    default=fuel_options,
+                    key="selected_fuels",
+                )
+            controls.append(("Combustibles", _fuels))
+        if sector_filter:
+            sectors = sorted(data["ghg"]["secteur"].dropna().unique().tolist())
+            def _sectors():
+                return st.multiselect("Secteurs", sectors, default=sectors, key="selected_sectors")
+            controls.append(("Secteurs", _sectors))
+        if gas_filter:
+            gases = sorted(data["ghg"]["type"].dropna().unique().tolist())
+            def _gases():
+                return st.multiselect("Types de gaz", gases, default=gases, key="selected_gases")
+            controls.append(("Types de gaz", _gases))
+        if month_filter:
+            def _months():
+                return st.slider(
+                    "Mois inclus",
+                    min_value=1,
+                    max_value=12,
+                    value=(1, 12),
+                    key="selected_months",
+                )
+            controls.append(("Mois inclus", _months))
+        if prefecture_filter:
+            def _prefecture():
+                filtered_areas = data["areas"]
+                if st.session_state.get("global_region", "Toutes") != "Toutes":
+                    filtered_areas = filtered_areas[
+                        filtered_areas["region_nom_bdd"]
+                        == st.session_state.get("global_region", "Toutes")
+                    ]
+                prefectures = sorted(
+                    filtered_areas["prefecture_nom_bdd"].dropna().unique().tolist()
+                )
+                return st.selectbox(
+                    "Préfecture", ["Toutes"] + prefectures, key="selected_prefecture"
+                )
+            controls.append(("Préfecture", _prefecture))
+        if surface_filter:
+            maximum = float(data["areas"]["surface_km2"].max())
+            def _surface():
+                return st.slider(
+                    "Surface minimale (km²)",
+                    min_value=0.0,
+                    max_value=maximum,
+                    value=0.0,
+                    step=max(maximum / 100, 0.01),
+                    key="minimum_surface",
+                )
+            controls.append(("Surface minimale (km²)", _surface))
+        if top_n_filter:
+            def _topn():
+                return st.slider(
+                    "Préfectures affichées",
+                    min_value=5,
+                    max_value=20,
+                    value=10,
+                    key="top_n",
+                )
+            controls.append(("Préfectures affichées", _topn))
+
+        # Valeurs retournees pour les trois filtres communs.
+        city_value = "Toutes"
+        region_value = "Toutes"
+        for row in _chunk(controls):
+            cols = st.columns(len(row))
+            for col, (label, render) in zip(cols, row):
+                with col:
+                    value = render()
+                if label == "Année de référence":
+                    selected_year = value
+                elif label == "Ville":
+                    city_value = value
+                elif label == "Région":
+                    region_value = value
     return (
         selected_year,
-        None if selected_city == "Toutes" else selected_city,
-        None if selected_region == "Toutes" else selected_region,
+        None if city_value == "Toutes" else city_value,
+        None if region_value == "Toutes" else region_value,
     )
 
 

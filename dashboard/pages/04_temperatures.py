@@ -4,8 +4,25 @@ import streamlit as st
 
 from dashboard.common import load_key_data, render_filters, render_source, show_empty_message
 from dashboard.components import initialize_page, insight, kpi_card, render_main_header
-from src.analysis import analyze_temperature_trends, prepare_temperature_anomalies, prepare_temperature_heatmap, summarize_temperature_gradient
+from src.analysis import analyze_temperature_trends, compute_national_temperature_trend, prepare_temperature_anomalies, prepare_temperature_heatmap, summarize_temperature_gradient
 from src.viz import temperature_anomaly_figure, temperature_figure, temperature_gradient_figure, temperature_heatmap_figure
+
+
+def _temperature_trend_qualification(trend: dict) -> str:
+	"""Qualifie la tendance de temperature selon sa significativite statistique."""
+	if trend["p_value"] is not None and trend["p_value"] > 0.10:
+		return (
+			f"Mais la tendance est <b>non significative</b> "
+			f"(p = {trend['p_value']:.2f} > 0.10) : la direction lue n'est pas "
+			"statistiquement etablie sur ces 7 annees."
+		)
+	if trend["r2"] < 0.5:
+		return "Tendance a confirmer (R² faible sur une fenetre courte)."
+	if trend["slope_degc_an"] > 0:
+		return "Réchauffement en hausse qui se confirme."
+	if trend["slope_degc_an"] < 0:
+		return "Refroidissement en baisse qui se confirme."
+	return "Stabilite thermique."
 
 st.set_page_config(page_title="Climat | Togo AI Lab", layout="wide")
 initialize_page()
@@ -55,4 +72,20 @@ else:
 			st.plotly_chart(figure, width="stretch", key=f"temperature_figure_{figure_index}")
 		with insight_col:
 			insight(text, kind)
+	trend = compute_national_temperature_trend(raw)
+	if trend["slope_degc_an"] is None:
+		insight(
+			f"Tendance nationale : <b>données insuffisantes</b> "
+			f"({trend['n']} annee(s) exploitables, il en faut au moins 3) pour "
+			"estimer une direction fiable. Nous ne l'inventons pas."
+		)
+	else:
+		qualification = _temperature_trend_qualification(trend)
+		insight(
+			f"Tendance nationale (moyenne des villes, niveau le plus robuste) : "
+			f"pente = <b>{trend['slope_degc_an']:+.3f} °C/an</b>, soit "
+			f"{trend['slope_degc_dec']:+.2f} °C/décennie, sur "
+			f"n = {trend['n']} années — R² = {trend['r2']:.2f}, "
+			f"p = {trend['p_value']:.2f}. {qualification}"
+		)
 	render_source("observationdata-yvlucze.csv, températures mensuelles des villes")

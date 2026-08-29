@@ -4,7 +4,12 @@ import streamlit as st
 
 from dashboard.common import load_key_data, render_filters, render_source, show_empty_message
 from dashboard.components import initialize_page, insight, kpi_card, render_main_header
-from src.analysis import filter_cooking_fuels, prepare_cooking_composition, prepare_cooking_forest_series
+from src.analysis import (
+	build_cooking_forest_correlation_insight,
+	filter_cooking_fuels,
+	prepare_cooking_composition,
+	prepare_cooking_forest_series,
+)
 from src.viz import cooking_composition_figure, cooking_figure, cooking_forest_figure, renewable_share_figure
 
 st.set_page_config(page_title="Cuisson et forêts | Togo AI Lab", layout="wide")
@@ -37,7 +42,7 @@ else:
 		kpi_card("Année affichée", str(int(table["year"].max())) if not table["year"].dropna().empty else "Donnée absente", source="Banque mondiale", accent="forest")
 	figures = [
 		(cooking_figure(table), "La part bois-charbon reste le signal direct de dépendance aux combustibles traditionnels.", "warning"),
-		(cooking_forest_figure(table), "Les séries nationales évoluent en parallèle; ce rapprochement n'établit pas une causalité.", "warning"),
+		(cooking_forest_figure(table), "Les séries nationales évoluent en parallèle; une analyse statistique de leur corrélation suit ci-dessous.", "warning"),
 		(renewable_share_figure(trenewable), "La part des combustibles renouvelables situe la biomasse dans le mix énergétique global.", ""),
 		(cooking_composition_figure(prepare_cooking_composition(composition_data)), "Cette composition identifie les combustibles dominants à la dernière année observée dans la sélection.", ""),
 	]
@@ -47,4 +52,5 @@ else:
 			st.plotly_chart(figure, width="stretch", key=f"cooking_figure_{figure_index}")
 		with insight_col:
 			insight(text, kind)
+	insight(build_cooking_forest_correlation_insight(table), "warning")
 	render_source("indicators-tgo.csv et série énergie renouvelable")

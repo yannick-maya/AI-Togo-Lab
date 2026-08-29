@@ -69,7 +69,6 @@ def electrification_projection_figure(data: pd.DataFrame) -> go.Figure:
 		if projection in data and low in data and high in data:
 			valid = data[data[low].notna() & data[high].notna()].sort_values("year")
 			if not valid.empty:
-				band_color = color.replace("0x", "#") if color.startswith("0x") else color
 				figure.add_trace(go.Scatter(
 					x=valid["year"],
 					y=valid[high],

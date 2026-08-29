@@ -33,7 +33,9 @@ def inject_global_css() -> None:
         }}
 
         [data-testid="stSidebar"] {{
-            background: var(--color-background);
+            background: #ffffff;
+            border-right: 1px solid var(--color-neutral);
+            box-shadow: 2px 0 12px rgba(16, 24, 40, 0.04);
         }}
 
         .sidebar-brand {{
@@ -75,14 +77,15 @@ def inject_global_css() -> None:
         [data-testid="stSidebarNav"] a {{
             padding: 0.55rem 0.7rem;
             border-radius: 6px;
-            color: var(--color-neutral);
+            color: #344054;
+            font-size: 0.95rem;
             font-weight: 500;
             transition: background-color 120ms ease, color 120ms ease;
         }}
 
         [data-testid="stSidebarNav"] a:not([aria-current="page"]):hover {{
             background: var(--color-electricity-light);
-            color: var(--color-background);
+            color: var(--color-forest);
         }}
 
         [data-testid="stSidebarNav"] a:focus-visible {{
@@ -93,8 +96,59 @@ def inject_global_css() -> None:
         [data-testid="stSidebarNav"] a[aria-current="page"] {{
             background: var(--color-forest);
             box-shadow: inset 4px 0 0 var(--color-cooking);
-            color: var(--color-background);
+            color: #ffffff;
             font-weight: 700;
+        }}
+
+        [data-testid="stSidebarNav"] li:nth-of-type(2) {{
+            margin-top: 0.75rem;
+            padding-top: 1.1rem;
+            border-top: 1px solid var(--color-neutral);
+        }}
+
+        [data-testid="stSidebarNav"] li:nth-of-type(2)::before {{
+            content: "Diagnostic thématique";
+            display: block;
+            margin-bottom: 0.55rem;
+            color: var(--color-forest);
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }}
+
+        [data-testid="stSidebarNav"] li:nth-of-type(6) {{
+            margin-top: 0.75rem;
+            padding-top: 1.1rem;
+            border-top: 1px solid var(--color-neutral);
+        }}
+
+        [data-testid="stSidebarNav"] li:nth-of-type(6)::before {{
+            content: "Territoire";
+            display: block;
+            margin-bottom: 0.55rem;
+            color: var(--color-forest);
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }}
+
+        [data-testid="stSidebarNav"] li:nth-of-type(7) {{
+            margin-top: 0.75rem;
+            padding-top: 1.1rem;
+            border-top: 1px solid var(--color-neutral);
+        }}
+
+        [data-testid="stSidebarNav"] li:nth-of-type(7)::before {{
+            content: "Synthèse";
+            display: block;
+            margin-bottom: 0.55rem;
+            color: var(--color-forest);
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
         }}
 
         .app-header {{
@@ -133,6 +187,38 @@ def inject_global_css() -> None:
             color: var(--color-forest);
             font-size: 1.25rem;
             font-weight: 700;
+        }}
+
+        .filter-navbar__title {{
+            margin: -0.25rem 0 0.4rem;
+            color: var(--color-forest);
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }}
+
+        .st-key-filter_navbar {{
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-end;
+            gap: 1rem 1.5rem;
+            margin-bottom: 1.5rem;
+            padding: 1rem 1.25rem;
+            background: #ffffff;
+            border: 1px solid var(--color-neutral);
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(16, 24, 40, 0.06);
+        }}
+
+        .st-key-filter_navbar [data-testid="stHorizontalBlock"] {{
+            gap: 1.5rem;
+        }}
+
+        .st-key-filter_navbar label {{
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--color-neutral);
         }}
 
         .kpi-card {{

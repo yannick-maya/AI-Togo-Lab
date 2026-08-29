@@ -5,7 +5,7 @@ import streamlit as st
 from dashboard.common import load_key_data, render_filters, render_source, show_empty_message
 from dashboard.components import initialize_page, insight, kpi_card, render_main_header
 from src.analysis import prepare_recommendation_table
-from src.viz import prioritization_bar_figure, prioritization_scatter_figure, priority_zones_figure
+from src.viz import prioritization_bar_figure, prioritization_components_figure, prioritization_scatter_figure, priority_zones_figure
 
 st.set_page_config(page_title="Recommandations | Togo AI Lab", layout="wide")
 initialize_page()
@@ -30,6 +30,7 @@ else:
 	figures = [
 		(prioritization_scatter_figure(table), "Le nuage met en relation la pression forestière et le score retenu pour classer les préfectures.", "warning"),
 		(prioritization_bar_figure(table), "Le classement horizontal rend immédiatement visibles les préfectures en tête de priorisation.", ""),
+		(prioritization_components_figure(table), "Décompose le score en sa composante de surface protégée; toutes les préfectures retenues partagent la même composante, seule la valeur varie.", ""),
 		(priority_zones_figure(table), "Le nombre de zones protégées donne un repère opérationnel pour organiser les diagnostics des préfectures prioritaires.", ""),
 	]
 	for figure_index, (figure, text, kind) in enumerate(figures):
