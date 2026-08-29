@@ -1,12 +1,37 @@
 """Fonctions d'analyse des cinq axes du projet."""
 
 import pandas as pd
+from scipy import stats
 
 from src.cleaning import parse_temperature_period
 
 
 ELECTRIFICATION_GAP_MARKED_THRESHOLD = 50.0
 ELECTRIFICATION_RECENT_OBSERVATIONS = 5
+TREND_MIN_OBSERVATIONS = 3
+TREND_P_VALUE_THRESHOLD = 0.10
+
+
+def compute_linear_trend(x: pd.Series, y: pd.Series) -> dict[str, float | int | None]:
+	"""Regression lineaire OLS sur (x, y), apres suppression des paires incompletes.
+
+	Retourne slope, intercept, r_value, p_value, std_err et n (taille de
+	l'echantillon utilise). Retourne des valeurs None si n < 3 (une droite
+	passe toujours par 2 points, ce n'est pas une regression exploitable).
+	"""
+	paired = pd.DataFrame({"x": x, "y": y}).dropna()
+	n = len(paired)
+	if n < TREND_MIN_OBSERVATIONS:
+		return {"slope": None, "intercept": None, "r_value": None, "p_value": None, "std_err": None, "n": n}
+	result = stats.linregress(paired["x"], paired["y"])
+	return {
+		"slope": result.slope,
+		"intercept": result.intercept,
+		"r_value": result.rvalue,
+		"p_value": result.pvalue,
+		"std_err": result.stderr,
+		"n": n,
+	}
 
 
 def _pivot_indicators(data: pd.DataFrame) -> pd.DataFrame:
@@ -65,13 +90,18 @@ def build_electrification_insights(table: pd.DataFrame) -> list[str]:
 				f"En {int(latest['year'])}, l'ecart urbain-rural atteint "
 				f"{latest['rural_urban_gap']:.1f} points : {qualification}."
 			)
-			recent = gaps.tail(ELECTRIFICATION_RECENT_OBSERVATIONS)
-			if len(recent) >= 2:
-				change = recent.iloc[-1]["rural_urban_gap"] - recent.iloc[0]["rural_urban_gap"]
-				direction = "hausse" if change > 0 else "baisse" if change < 0 else "stabilite"
+			trend = compute_linear_trend(gaps["year"], gaps["rural_urban_gap"])
+			qualif_text = _qualify_gap_trend(trend)
+			if trend["slope"] is not None:
 				lines.append(
-					f"Sur les {len(recent)} dernieres observations, l'ecart est en "
-					f"{direction} de {abs(change):.1f} points."
+					f"Sur les {trend['n']} annees disponibles, la tendance de "
+					f"l'ecart est de {trend['slope']:+.2f} points/an "
+					f"(R² = {trend['r_value']**2:.2f}) — {qualif_text}."
+				)
+			else:
+				lines.append(
+					f"Donnees insuffisantes ({trend['n']} annee(s)) pour estimer une "
+					f"tendance fiable de l'ecart urbain-rural."
 				)
 	if national is not None:
 		values = ordered.dropna(subset=[national])
@@ -84,8 +114,49 @@ def build_electrification_insights(table: pd.DataFrame) -> list[str]:
 	return lines[:3]
 
 
+def _qualify_gap_trend(trend: dict[str, float | int | None]) -> str:
+	"""Qualifie la tendance de l'ecart selon son signe et sa significativite.
+
+	Un ecart est considere non signifiant si la p-value depasse
+	TREND_P_VALUE_THRESHOLD (0.10) : la pente observee est alors trop
+	incertaine pour etre presentee comme une direction etablie. R2 faible et
+	p_valeure non significative sont signales plutot que masques.
+	"""
+	if trend["slope"] is None:
+		return "donnees insuffisantes"
+	slope = trend["slope"]
+	p_value = trend["p_value"]
+	r2 = trend["r_value"] ** 2
+	if p_value is not None and p_value > TREND_P_VALUE_THRESHOLD:
+		return (
+			"tendance non significative (p = "
+			f"{p_value:.2f} > {TREND_P_VALUE_THRESHOLD:.2f}) : "
+			"la direction lue n'est pas statistiquement etablie"
+		)
+	if r2 < 0.5:
+		return "tendance a confirmer (R² faible)"
+	return "hausse recente qui se confirme" if slope > 0 else (
+		"baisse recente qui se confirme" if slope < 0 else "stabilite"
+	)
+
+
+_PROJECTION_TARGET_YEAR = 2030
+_PROJECTION_CI_Z = 1.96
+
+
 def project_electrification_2030(data: pd.DataFrame) -> dict[str, float | None]:
 	"""Projette lineairement les taux rural et urbain jusqu'en 2030.
+
+	La projection utilise une regression OLS sur TOUTES les annees disponibles
+	(via compute_linear_trend), et non les deux points extremes. Elle inclut la
+	pente, le R², la p-value, le nombre d'observations et une borne d'incertitude
+	en 2030.
+
+	Borne d'incertitude : demi-largeur = 1.96 * std_err * distance d'extrapolation,
+	ou std_err est l'erreur type de la pente et la distance vaut (2030 - derniere
+	annee observee). C'est une approximation descriptive de l'incertitude
+	d'extrapolation, suffisante pour afficher une fourchette indicative, sans
+	pretendre a un intervalle de prevision formel.
 
 	La projection est une extrapolation descriptive, pas une prevision causale.
 	"""
@@ -93,38 +164,76 @@ def project_electrification_2030(data: pd.DataFrame) -> dict[str, float | None]:
 	result: dict[str, float | None] = {}
 	for label in ("rural", "urban"):
 		column = next((c for c in table if label in str(c).lower()), None)
+		key_base = f"{label}_{_PROJECTION_TARGET_YEAR}"
+		for key in (
+			key_base,
+			f"{key_base}_low",
+			f"{key_base}_high",
+			f"{label}_slope",
+			f"{label}_intercept",
+			f"{label}_r2",
+			f"{label}_p_value",
+			f"{label}_n",
+		):
+			result[key] = None
 		if column is None:
-			result[f"{label}_2030"] = None
 			continue
 		points = table[["year", column]].dropna()
-		if len(points) < 2:
-			result[f"{label}_2030"] = None
+		trend = compute_linear_trend(points["year"], points[column])
+		if trend["slope"] is None:
 			continue
-		model = points.set_index("year")[column].sort_index()
-		slope = (model.iloc[-1] - model.iloc[0]) / (model.index[-1] - model.index[0])
-		result[f"{label}_2030"] = float(model.iloc[-1] + slope * (2030 - model.index[-1]))
+		target = _PROJECTION_TARGET_YEAR
+		proj_target = trend["intercept"] + trend["slope"] * target
+		last_year = int(points["year"].max())
+		half_width = _PROJECTION_CI_Z * trend["std_err"] * (target - last_year)
+		result[key_base] = float(proj_target)
+		result[f"{key_base}_low"] = float(proj_target - half_width)
+		result[f"{key_base}_high"] = float(proj_target + half_width)
+		result[f"{label}_slope"] = float(trend["slope"])
+		result[f"{label}_intercept"] = float(trend["intercept"])
+		result[f"{label}_r2"] = float(trend["r_value"] ** 2)
+		result[f"{label}_p_value"] = float(trend["p_value"])
+		result[f"{label}_n"] = int(trend["n"])
 	return result
 
 
 def prepare_electrification_projection(data: pd.DataFrame) -> pd.DataFrame:
-	"""Prepare les trajectoires observees et extrapolees jusqu'en 2030."""
+	"""Prepare les trajectoires observees et extrapolees jusqu'en 2030.
+
+	Pour chaque zone, la projection est la droite de regression calculee sur
+	toutes les annees observees (et non le segment entre les deux extremes).
+	Les colonnes *_projection_low/high propagent une bande d'incertitude qui
+	s'elargit avec la distance d'extrapolation a partir de la derniere annee
+	observee (largeur nulle a la derniere annee observee).
+	"""
 	table = analyze_electrification(data)
 	series = table[["year"] + [c for c in table if "rural" in str(c).lower() or "urban" in str(c).lower()]].copy()
-	projection = project_electrification_2030(data)
 	last_year = int(table["year"].dropna().max()) if not table["year"].dropna().empty else 2023
 	for label in ("rural", "urban"):
 		column = next((c for c in series if label in str(c).lower()), None)
 		if column is None:
 			continue
+		trend = compute_linear_trend(series["year"], series[column])
 		series[f"{label}_projection"] = series[column]
-		end = projection[f"{label}_2030"]
-		if end is not None:
-			future = pd.DataFrame({"year": range(last_year + 1, 2031)})
-			start = series.loc[series["year"] == last_year, column].dropna()
-			if not start.empty:
-				future[f"{label}_projection"] = start.iloc[0] + (end - start.iloc[0]) * (future["year"] - last_year) / (2030 - last_year)
-				series = series.merge(future, on="year", how="outer", suffixes=("", "_future"))
-				series[f"{label}_projection"] = series[f"{label}_projection"].fillna(series.pop(f"{label}_projection_future"))
+		series[f"{label}_projection_low"] = float("nan")
+		series[f"{label}_projection_high"] = float("nan")
+		if trend["slope"] is None:
+			continue
+		slope, intercept, std_err = trend["slope"], trend["intercept"], trend["std_err"]
+		fitted = series.loc[series[column].notna(), "year"]
+		last_fitted_year = int(fitted.max())
+		future_years = range(last_year + 1, _PROJECTION_TARGET_YEAR + 1)
+		extrapolated_years = sorted(set(fitted.tolist()) | set(future_years))
+		rows: list[tuple[int, float, float, float]] = []
+		for year in extrapolated_years:
+			fitted_value = intercept + slope * year
+			half_width = _PROJECTION_CI_Z * std_err * max(year - last_fitted_year, 0)
+			rows.append((year, fitted_value, fitted_value - half_width, fitted_value + half_width))
+		future = pd.DataFrame(rows, columns=["year", f"{label}_projection", f"{label}_projection_low", f"{label}_projection_high"])
+		merged = series.merge(future, on="year", how="outer", suffixes=("", "_new"))
+		for col in (f"{label}_projection", f"{label}_projection_low", f"{label}_projection_high"):
+			merged[col] = pd.to_numeric(merged[col], errors="coerce").fillna(merged.pop(f"{col}_new"))
+		series = merged
 	return series.sort_values("year")
 
 

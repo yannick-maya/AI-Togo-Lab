@@ -57,14 +57,41 @@ def national_electricity_figure(data: pd.DataFrame) -> go.Figure:
 
 
 def electrification_projection_figure(data: pd.DataFrame) -> go.Figure:
-	"""Construit les trajectoires extrapolees vers 2030."""
+	"""Construit les trajectoires extrapolees vers 2030 avec bande d'incertitude."""
 	figure = go.Figure()
 	for label, name, color in (("rural", "Rural", COLORS["electricity"]), ("urban", "Urbain", COLORS["electricity_light"])):
 		column = next((c for c in data if label in str(c).lower() and "projection" not in str(c).lower()), None)
 		projection = f"{label}_projection"
+		low = f"{label}_projection_low"
+		high = f"{label}_projection_high"
 		if column:
 			figure.add_trace(go.Scatter(x=data["year"], y=data[column], name=f"{name} observé", mode="lines+markers", line={"color": color}))
-		if projection in data:
+		if projection in data and low in data and high in data:
+			valid = data[data[low].notna() & data[high].notna()].sort_values("year")
+			if not valid.empty:
+				band_color = color.replace("0x", "#") if color.startswith("0x") else color
+				figure.add_trace(go.Scatter(
+					x=valid["year"],
+					y=valid[high],
+					name=f"{name} projeté (borne haute)",
+					mode="lines",
+					line={"width": 0},
+					showlegend=False,
+					hoverinfo="skip",
+				))
+				figure.add_trace(go.Scatter(
+					x=valid["year"],
+					y=valid[low],
+					name=f"{name} bande d'incertitude",
+					mode="lines",
+					line={"width": 0},
+					fill="tonexty",
+					fillcolor="rgba(180,180,200,0.25)",
+					legendgroup=name,
+					showlegend=True,
+				))
+				figure.add_trace(go.Scatter(x=valid["year"], y=valid[projection], name=f"{name} projeté", mode="lines", line={"color": color, "dash": "dash"}, legendgroup=name, showlegend=False))
+		elif projection in data:
 			figure.add_trace(go.Scatter(x=data["year"], y=data[projection], name=f"{name} projeté", mode="lines", line={"color": color, "dash": "dash"}))
 	figure.update_xaxes(title="Année")
 	figure.update_yaxes(title="Population couverte (%)", rangemode="tozero")

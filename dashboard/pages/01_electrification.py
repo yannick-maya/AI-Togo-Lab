@@ -11,13 +11,43 @@ from dashboard.common import (
 from dashboard.components import initialize_page, insight, kpi_card, render_main_header
 from src.analysis import (
 	ELECTRIFICATION_GAP_MARKED_THRESHOLD,
-	ELECTRIFICATION_RECENT_OBSERVATIONS,
 	analyze_electrification,
 	build_electrification_insights,
 	prepare_electrification_projection,
 	project_electrification_2030,
 )
 from src.viz import electricity_gap_figure, electrification_gap_area_figure, electrification_projection_figure, national_electricity_figure
+
+
+def _projection_stats_text(projection: dict) -> str:
+	"""Resume les statistiques de regression des projections rurales et urbaines."""
+	lines: list[str] = []
+	for label, name in (("rural", "Rural"), ("urban", "Urbain")):
+		n = projection.get(f"{label}_n")
+		slope = projection.get(f"{label}_slope")
+		if slope is None:
+			lines.append(
+				f"- {name} : projection 2030 non estimable "
+				f"(données insuffisantes, n = {n})."
+			)
+			continue
+		r2 = projection.get(f"{label}_r2")
+		p_value = projection.get(f"{label}_p_value")
+		target_value = projection[f"{label}_2030"]
+		target = f"{target_value:.1f} %" if target_value is not None else "n.c."
+		text = (
+			f"- {name} : 2030 ≈ {target} ; pente = {slope:+.2f} pts/an "
+			f"(R² = {r2:.2f}, p = {p_value:.2f}, n = {int(n)} années)."
+		)
+		if target_value is not None and target_value > 100:
+			text += (
+				" <span style='color:inherit'>⚠ projection dépassant 100 % : "
+				"l'extrapolation linéaire dépasse le plafond physique — "
+				"elle est statistiquement possible mais irréaliste, "
+				"indice d'un modèle saturé.</span>"
+			)
+		lines.append(text)
+	return "<br>".join(lines)
 
 st.set_page_config(page_title="Électrification | Togo AI Lab", layout="wide")
 initialize_page()
@@ -48,7 +78,7 @@ else:
 	with col2:
 		kpi_card("Écart urbain-rural", f"{gap:.1f} points" if gap is not None else "Donnée absente", source="Banque mondiale", accent="cooking")
 	with col3:
-		kpi_card("Projection rurale 2030", f"{projection['rural_2030']:.1f} %" if projection['rural_2030'] is not None else "Non estimable", source="Extrapolation descriptive", accent="forest")
+		kpi_card("Projection rurale 2030", f"{projection['rural_2030']:.1f} %" if projection['rural_2030'] is not None else "Non estimable", source="Régression OLS descriptive", accent="forest")
 	display_mode = st.session_state.get("display_mode", "Urbain vs rural")
 	primary_figure = {
 		"Taux national": national_electricity_figure(table),
@@ -69,10 +99,12 @@ else:
 	insights = build_electrification_insights(table)
 	if insights:
 		insight("<br>".join(f"- {line}" for line in insights))
+		insight(_projection_stats_text(projection))
 		st.caption(
-			f"Seuils descriptifs : écart supérieur ou égal à "
-			f"{ELECTRIFICATION_GAP_MARKED_THRESHOLD:.0f} points = fracture marquée; "
-			f"tendance calculée sur les {ELECTRIFICATION_RECENT_OBSERVATIONS} "
-			"dernières observations disponibles."
+			f"Statistiques de la projection : régression linéaire OLS sur toutes "
+			"les années disponibles (rural/urbain séparément), R² et p-value "
+			"affichés ici ; bande d'incertitude = ± 1,96 × erreur type de la pente "
+			"× distance d'extrapolation. Seuil descriptif d'écart : "
+			f"{ELECTRIFICATION_GAP_MARKED_THRESHOLD:.0f} points = fracture marquée."
 		)
 	render_source("indicators-tgo.csv, Banque mondiale")
