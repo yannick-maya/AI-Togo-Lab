@@ -2,6 +2,7 @@
 
 from pathlib import Path
 
+import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
@@ -45,6 +46,61 @@ def insight(text: str, kind: str = "") -> None:
     """Affiche une interpretation associee a un visuel."""
     class_name = f"insight-box {kind}".strip()
     st.markdown(f'<div class="{class_name}">{text}</div>', unsafe_allow_html=True)
+
+
+def render_table(
+    dataframe: pd.DataFrame,
+    caption: str = "",
+    float_fmt: str = "{:,.2f}",
+) -> None:
+    """Affiche un tableau de synthese habille selon la charte (.data-table).
+
+    Les colonnes numeriques sont alignees a droite; les autres a gauche.
+    """
+    if dataframe is None or dataframe.empty:
+        return
+    caption_html = (
+        f'<div class="data-table__caption">{caption}</div>' if caption else ""
+    )
+    thead = "<tr>" + "".join(
+        f"<th>{col}</th>" for col in dataframe.columns
+    ) + "</tr>"
+    rows: list[str] = []
+    for _, row in dataframe.iterrows():
+        cells: list[str] = []
+        for col in dataframe.columns:
+            value = row[col]
+            if isinstance(value, (int, float)) and pd.notna(value):
+                cls = "num"
+                text = (
+                    f"{value:,.0f}"
+                    if isinstance(value, int)
+                    else float_fmt.format(value)
+                )
+            elif pd.notna(value):
+                cls = ""
+                text = str(value)
+            else:
+                cls = ""
+                text = "n.d."
+            cells.append(f'<td class="{cls}">{text}</td>')
+        rows.append("<tr>" + "".join(cells) + "</tr>")
+    st.markdown(
+        f'<div class="data-table">{caption_html}<table><thead>{thead}</thead>'
+        f"<tbody>{''.join(rows)}</tbody></table></div>",
+        unsafe_allow_html=True,
+    )
+
+
+def recommendation(title: str, text: str) -> None:
+    """Affiche un encart de recommandation en pied de page."""
+    st.markdown(
+        f'<div class="recommendation-box">'
+        f'<div class="recommendation-title">{title}</div>'
+        f'<div class="recommendation-text">{text}</div>'
+        f"</div>",
+        unsafe_allow_html=True,
+    )
 
 
 def render_main_header(

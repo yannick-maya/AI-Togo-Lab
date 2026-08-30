@@ -8,7 +8,14 @@ from dashboard.common import (
 	render_source,
 	show_empty_message,
 )
-from dashboard.components import initialize_page, insight, kpi_card, render_main_header
+from dashboard.components import (
+	initialize_page,
+	insight,
+	kpi_card,
+	recommendation,
+	render_main_header,
+	render_table,
+)
 from src.analysis import (
 	ELECTRIFICATION_GAP_MARKED_THRESHOLD,
 	analyze_electrification,
@@ -72,13 +79,23 @@ else:
 	national_columns = [c for c in table if str(c).strip() == "Access to electricity (% of population)"]
 	national = table[national_columns[0]].dropna().iloc[-1] if national_columns and not table[national_columns[0]].dropna().empty else None
 	gap = table["rural_urban_gap"].dropna().iloc[-1] if not table["rural_urban_gap"].dropna().empty else None
-	col1, col2, col3 = st.columns(3)
-	with col1:
+	gap_series = table["rural_urban_gap"].dropna()
+	gap_amplitude = gap_series.max() - gap_series.min() if not gap_series.empty and gap_series.max() == gap_series.max() else None
+	first_year = int(table["year"].dropna().min()) if not table["year"].dropna().empty else None
+	kpi_row_1 = st.columns(3)
+	with kpi_row_1[0]:
 		kpi_card("Accès national", f"{national:.1f} %" if national is not None else "Donnée absente", source="Banque mondiale", accent="primary")
-	with col2:
+	with kpi_row_1[1]:
 		kpi_card("Écart urbain-rural", f"{gap:.1f} points" if gap is not None else "Donnée absente", source="Banque mondiale", accent="cooking")
-	with col3:
+	with kpi_row_1[2]:
 		kpi_card("Projection rurale 2030", f"{projection['rural_2030']:.1f} %" if projection['rural_2030'] is not None else "Non estimable", source="Régression OLS descriptive", accent="forest")
+	kpi_row_2 = st.columns(3)
+	with kpi_row_2[0]:
+		kpi_card("Amplitude de l'écart", f"{gap_amplitude:.1f} points" if gap_amplitude is not None else "Donnée absente", source="Banque mondiale", accent="primary")
+	with kpi_row_2[1]:
+		kpi_card("Première année disponible", str(first_year) if first_year is not None else "Donnée absente", source="Banque mondiale", accent="primary")
+	with kpi_row_2[2]:
+		kpi_card("Années de régression", f"n = {projection['rural_n']}" if projection['rural_n'] is not None else "Non estimable", source="Régression OLS descriptive", accent="forest")
 	display_mode = st.session_state.get("display_mode", "Urbain vs rural")
 	primary_figure = {
 		"Taux national": national_electricity_figure(table),
@@ -106,5 +123,24 @@ else:
 			"affichés ici ; bande d'incertitude = ± 1,96 × erreur type de la pente "
 			"× distance d'extrapolation. Seuil descriptif d'écart : "
 			f"{ELECTRIFICATION_GAP_MARKED_THRESHOLD:.0f} points = fracture marquée."
+		)
+	national_col = next((c for c in table if str(c).strip() == "Access to electricity (% of population)"), None)
+	rural_col = next((c for c in table if "rural" in str(c).lower()), None)
+	urban_col = next((c for c in table if "urban" in str(c).lower()), None)
+	if rural_col and urban_col:
+		summary = table[["year", national_col, rural_col, urban_col, "rural_urban_gap"]].sort_values("year").tail(8)
+		summary.columns = ["Année", "Taux national (%)", "Taux rural (%)", "Taux urbain (%)", "Écart urbain-rural (pts)"]
+		render_table(summary, caption="Électrification — dernières années disponibles")
+	if gap is not None:
+		rural_val = table[rural_col].dropna().iloc[-1] if rural_col and not table[rural_col].dropna().empty else None
+		urban_val = table[urban_col].dropna().iloc[-1] if urban_col and not table[urban_col].dropna().empty else None
+		rural_txt = f"{rural_val:.1f} %" if rural_val is not None else "n.d."
+		urban_txt = f"{urban_val:.1f} %" if urban_val is not None else "n.d."
+		recommendation(
+			"Recommandation",
+			f"L'écart de {gap:.1f} points entre milieux urbain et rural reste prononcé sur la période. "
+			"Prioriser l'extension du réseau et les solutions hors-réseau (solaire décentralisée) dans les "
+			f"aires rurales constitue le levier principal pour rapprocher le taux d'accès rural ({rural_txt}) "
+			f"du taux urbain ({urban_txt}) à l'horizon 2030."
 		)
 	render_source("indicators-tgo.csv, Banque mondiale")

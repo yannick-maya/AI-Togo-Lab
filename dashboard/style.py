@@ -58,7 +58,7 @@ def inject_global_css() -> None:
 
         .sidebar-section-title {{
             margin: 0.85rem 0 0.5rem;
-            color: var(--color-forest);
+            color: var(--bleu);
             font-size: 0.78rem;
             font-weight: 700;
             letter-spacing: 0.04em;
@@ -273,6 +273,83 @@ def inject_global_css() -> None:
         .insight-box.alert {{
             border-left-color: var(--color-emissions);
             background: #fff7f6;
+        }}
+
+        .data-table {{
+            margin: 1.25rem 0 1.5rem;
+            overflow-x: auto;
+            background: #ffffff;
+            border: 1px solid var(--color-neutral);
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(16, 24, 40, 0.06);
+        }}
+
+        .data-table__caption {{
+            padding: 0.7rem 1rem 0.4rem;
+            color: var(--color-forest);
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }}
+
+        .data-table table {{
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            color: #344054;
+        }}
+
+        .data-table thead th {{
+            background: #eef2f6;
+            color: #1b4332;
+            font-weight: 700;
+            text-align: left;
+            padding: 0.6rem 0.9rem;
+            border-bottom: 2px solid var(--color-neutral);
+            white-space: nowrap;
+        }}
+
+        .data-table tbody td {{
+            padding: 0.55rem 0.9rem;
+            border-bottom: 1px solid #eef2f6;
+        }}
+
+        .data-table tbody tr:nth-child(even) {{
+            background: #f8fafc;
+        }}
+
+        .data-table tbody tr:last-child td {{
+            border-bottom: none;
+        }}
+
+        .data-table td.num {{
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+        }}
+
+        .recommendation-box {{
+            margin-top: 2rem;
+            padding: 1.1rem 1.3rem;
+            background: #ffffff;
+            border-left: 6px solid var(--color-forest);
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(16, 24, 40, 0.08);
+        }}
+
+        .recommendation-box .recommendation-title {{
+            color: var(--color-forest);
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            margin-bottom: 0.4rem;
+        }}
+
+        .recommendation-box .recommendation-text {{
+            color: #344054;
+            line-height: 1.6;
+            font-size: 0.95rem;
         }}
         </style>
         """,
