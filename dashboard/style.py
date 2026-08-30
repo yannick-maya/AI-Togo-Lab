@@ -221,6 +221,34 @@ def inject_global_css() -> None:
             color: var(--color-neutral);
         }}
 
+        /* Option sélectionnée : vert forêt + texte blanc (selectbox, multiselect, radio) */
+        .st-key-filter_navbar [data-testid="stSelectbox"] [data-baseweb="select"],
+        .st-key-filter_navbar [data-testid="stMultiSelect"] [data-baseweb="select"] {{
+            background-color: var(--color-forest) !important;
+            border-color: var(--color-forest) !important;
+        }}
+        .st-key-filter_navbar [data-testid="stSelectbox"] [data-baseweb="select"] span,
+        .st-key-filter_navbar [data-testid="stSelectbox"] [data-baseweb="select"] div,
+        .st-key-filter_navbar [data-testid="stMultiSelect"] [data-baseweb="select"] div {{
+            color: #ffffff !important;
+        }}
+        .st-key-filter_navbar [data-testid="stMultiSelect"] [data-baseweb="tag"] {{
+            background-color: var(--color-forest) !important;
+            border-color: var(--color-forest) !important;
+        }}
+        .st-key-filter_navbar [data-testid="stMultiSelect"] [data-baseweb="tag"] span {{
+            color: #ffffff !important;
+        }}
+        .st-key-filter_navbar [data-testid="stRadio"] label:has(input:checked) [data-testid="stMarkdownContainer"] p {{
+            color: var(--color-forest);
+            font-weight: 700;
+        }}
+        [data-baseweb="popover"] [role="option"][aria-selected="true"],
+        [data-baseweb="menu"] [role="option"][aria-selected="true"] {{
+            background-color: var(--color-forest) !important;
+            color: #ffffff !important;
+        }}
+
         .kpi-card {{
             min-height: 112px;
             padding: 1rem 1.1rem;

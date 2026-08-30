@@ -23,6 +23,8 @@ render_main_header(
 data = load_key_data()
 selected_year, _, _ = render_filters(data, show_city=False, show_region=False)
 electrification = analyze_electrification(data["indicators"]["electrification"])
+if selected_year is None:
+	selected_year = int(electrification["year"].dropna().max())
 selected = electrification[electrification["year"] == selected_year]
 coverage_columns = [
     column

@@ -25,7 +25,11 @@ selected_year, _, _ = render_filters(
 	fuel_options=["Bois", "Charbon", "Cuisson propre"],
 )
 table = prepare_cooking_forest_series(data["indicators"]["cooking"], data["indicators"]["forest"])
-table = filter_cooking_fuels(table, st.session_state.get("selected_fuels", ["Bois", "Charbon", "Cuisson propre"]))
+_fuel_options = ["Bois", "Charbon", "Cuisson propre"]
+_selected_fuels = st.session_state.get("selected_fuels", _fuel_options)
+if "Tous" in _selected_fuels:
+	_selected_fuels = _fuel_options
+table = filter_cooking_fuels(table, _selected_fuels)
 renewable = data["renewable_energy"]
 composition_data = data["indicators"]["cooking"]
 if selected_year is not None:

@@ -14,6 +14,10 @@ data = load_key_data()
 render_filters(data, show_year=False, show_city=False, show_region=False, sector_filter=True, gas_filter=True)
 selected_sectors = st.session_state.get("selected_sectors", [])
 selected_gases = st.session_state.get("selected_gases", [])
+if "Tous" in selected_sectors:
+	selected_sectors = sorted(data["ghg"]["secteur"].dropna().unique().tolist())
+if "Tous" in selected_gases:
+	selected_gases = sorted(data["ghg"]["type"].dropna().unique().tolist())
 filtered_ghg = data["ghg"]
 if selected_sectors:
 	filtered_ghg = filtered_ghg[filtered_ghg["secteur"].isin(selected_sectors)]

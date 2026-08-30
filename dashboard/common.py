@@ -73,11 +73,12 @@ def render_filters(
         )
         selected_year = None
         if show_year:
+            year_choices = ["Toutes les années"] + [int(y) for y in years]
             def _year():
                 return st.selectbox(
                     "Année de référence",
-                    years,
-                    index=len(years) - 1 if years else None,
+                    year_choices,
+                    index=len(year_choices) - 1 if years else 0,
                     key=year_key,
                 )
             controls.append(("Année de référence", _year))
@@ -96,23 +97,30 @@ def render_filters(
                 return st.radio("Mode d'affichage", display_modes, key="display_mode", horizontal=True)
             controls.append(("Mode d'affichage", _mode))
         if fuel_options:
+            fuel_choices = ["Tous"] + fuel_options
             def _fuels():
                 return st.multiselect(
                     "Combustibles à afficher",
-                    fuel_options,
+                    fuel_choices,
                     default=fuel_options,
                     key="selected_fuels",
                 )
             controls.append(("Combustibles", _fuels))
         if sector_filter:
             sectors = sorted(data["ghg"]["secteur"].dropna().unique().tolist())
+            sector_choices = ["Tous"] + sectors
             def _sectors():
-                return st.multiselect("Secteurs", sectors, default=sectors, key="selected_sectors")
+                return st.multiselect(
+                    "Secteurs", sector_choices, default=sectors, key="selected_sectors"
+                )
             controls.append(("Secteurs", _sectors))
         if gas_filter:
             gases = sorted(data["ghg"]["type"].dropna().unique().tolist())
+            gas_choices = ["Tous"] + gases
             def _gases():
-                return st.multiselect("Types de gaz", gases, default=gases, key="selected_gases")
+                return st.multiselect(
+                    "Types de gaz", gas_choices, default=gases, key="selected_gases"
+                )
             controls.append(("Types de gaz", _gases))
         if month_filter:
             def _months():
@@ -171,7 +179,7 @@ def render_filters(
                 with col:
                     value = render()
                 if label == "Année de référence":
-                    selected_year = value
+                    selected_year = None if value == "Toutes les années" else value
                 elif label == "Ville":
                     city_value = value
                 elif label == "Région":
