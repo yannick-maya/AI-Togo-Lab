@@ -44,19 +44,15 @@ else:
 	corr = compute_cooking_forest_correlation(table)
 	clean = table.dropna(subset=["clean_cooking_access"])
 	clean_value = clean["clean_cooking_access"].iloc[-1] if not clean.empty else None
-	kpi_row_1 = st.columns(3)
+	kpi_row_1 = st.columns(2)
 	with kpi_row_1[0]:
 		kpi_card("Bois + charbon", f"{value:.1f} %" if value is not None else "Donnée absente", source="Banque mondiale", accent="cooking")
 	with kpi_row_1[1]:
-		kpi_card("Corrélation (niveaux)", f"r = {corr['levels_r']:.2f}" if corr["levels_r"] is not None else "Donnée absente", source="Pearson, n niveaux", accent="forest")
-	with kpi_row_1[2]:
-		kpi_card("Corrélation (variations)", f"r = {corr['changes_r']:.2f}" if corr["changes_r"] is not None else "Donnée absente", source="Pearson, .diff()", accent="forest")
-	kpi_row_2 = st.columns(3)
-	with kpi_row_2[0]:
 		kpi_card("Cuisson propre", f"{clean_value:.1f} %" if clean_value is not None else "Donnée absente", source="Banque mondiale", accent="cooking")
-	with kpi_row_2[1]:
+	kpi_row_2 = st.columns(2)
+	with kpi_row_2[0]:
 		kpi_card("Année affichée", str(int(table["year"].max())) if not table["year"].dropna().empty else "Donnée absente", source="Banque mondiale", accent="forest")
-	with kpi_row_2[2]:
+	with kpi_row_2[1]:
 		kpi_card("Observations couplées", f"n = {corr['levels_n']}", source="Séries cuisson/forêt", accent="primary")
 	figures = [
 		(cooking_figure(table), "La part bois-charbon reste le signal direct de dépendance aux combustibles traditionnels.", "warning"),

@@ -52,10 +52,11 @@ les deux commandes sont donc equivalentes.
 - Les geometries WKT sont lues en WGS84; les surfaces sont calculees en UTM 31N (EPSG:32631).
 - Les indicateurs Banque mondiale sont regroupes en familles electrification, cuisson, forets et emissions.
 - L'indice de priorisation combine trois composantes normalisees : ecart d'electrification (40 %), dependance bois/charbon (35 %) et pression forestiere (25 %).
-- Le dashboard propose des filtres persistants par annee, ville et region lorsque la granularite de la source le permet, ainsi que des visualisations Plotly avec sources et interpretations.
+- Le dashboard propose des filtres persistants presentes dans une barre horizontale en haut du contenu (`.filter-navbar`), avec annees, villes, regions et options the matiques; les filtres multi-valeurs offrent une option `Tous` et le filtre d'annee une option `Toutes les annees`. Les visualisations Plotly sont accompagnees de sources et d'interpretations.
+- L'option selectionnee dans les filtres (selectbox, multi-select et radio) est surlignee en vert foret avec texte blanc, cohérente avec l'accent de la page active de la sidebar.
 - Le logo est optionnel : il sera automatiquement affiche depuis `dashboard/assets/logo.png` lorsqu'il sera fourni.
-- Le systeme de design de `dashboard/style.py` et `dashboard/components.py` fournit une charte CSS partagee, des cartes KPI, des encarts d'insight et des bandeaux avec logo.
-- Les pages d'analyse proposent jusqu'a quatre figures complementaires : tendances, comparaisons, hierarchies, cartes ou anomalies selon l'axe traite.
+- Le systeme de design de `dashboard/style.py` et `dashboard/components.py` fournit une charte CSS partagee, des cartes KPI, des tableaux de synthese (composant `render_table`), des encarts d'insight, des boites de recommandation (composant `recommendation`) et des bandeaux avec logo.
+- Chaque page d'analyse affiche des cartes KPI, un tableau de synthese, jusqu'a quatre figures complementaires (tendances, comparaisons, hierarchies, cartes ou anomalies) et une boite de recommandation en bas de page.
 
 ## Limites
 
@@ -78,7 +79,7 @@ La suite actuelle contient 9 tests et couvre les chargeurs, le nettoyage, l'extr
 4. Ouvrir `Zones protegees`, choisir `Toutes` puis deux regions differentes. Le nombre de points, la surface et l'histogramme regional doivent changer.
 5. Ouvrir `Recommandations`, choisir `Toutes` puis une region. Le tableau et le nuage de points doivent afficher uniquement la selection.
 6. Verifier qu'une selection sans observation affiche `Aucune donnée pour cette sélection` au lieu d'un graphique vide.
-7. Verifier la sidebar : les filtres restent coherents en naviguant entre les pages. Le logo est affiche automatiquement lorsqu'il existe dans `dashboard/assets/logo.png`.
+7. Verifier la barre de filtres horizontale en haut du contenu : les filtres restent coherents en naviguant entre les pages, l'option selectionnee est mise en evidence (vert foret / texte blanc) et les options `Tous` / `Toutes les annees` reagissent comme attendu. Le logo est affiche automatiquement lorsqu'il existe dans `dashboard/assets/logo.png`.
 8. Verifier chaque page : chaque graphique doit etre accompagne d'une interpretation directement a cote, et chaque carte KPI doit indiquer sa source.
 
 Pour un test de demarrage sans interaction navigateur :
