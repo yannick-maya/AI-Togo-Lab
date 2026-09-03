@@ -1,0 +1,13 @@
+"""Page de cartographie des zones protegees."""
+
+import streamlit as st
+
+from dashboard.common import load_key_data
+from src.analysis import summarize_protected_areas
+
+st.set_page_config(page_title="Zones protegees", layout="wide")
+st.title("Zones protegees et forets classees")
+data = load_key_data()["areas"]
+st.map(data[["centroid_lat", "centroid_lon"]].rename(columns={"centroid_lat": "lat", "centroid_lon": "lon"}))
+st.caption("Les points representent les centroïdes des 53 zones; les surfaces sont calculees en projection UTM.")
+st.dataframe(summarize_protected_areas(data), use_container_width=True, hide_index=True)

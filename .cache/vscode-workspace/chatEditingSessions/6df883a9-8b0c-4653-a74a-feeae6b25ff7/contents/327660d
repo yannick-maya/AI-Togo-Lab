@@ -1,0 +1,1 @@
+["{\"transientOutputs\":false,\"transientCellMetadata\":{\"breakpointMargin\":true,\"id\":false,\"metadata\":false,\"attachments\":false},\"transientDocumentMetadata\":{\"cells\":true,\"indentAmount\":true},\"cellContentMetadata\":{\"attachments\":true}}","{\"cells\":[],\"metadata\":{\"metadata\":{\"language_info\":{\"name\":\"python\"}}}}"]

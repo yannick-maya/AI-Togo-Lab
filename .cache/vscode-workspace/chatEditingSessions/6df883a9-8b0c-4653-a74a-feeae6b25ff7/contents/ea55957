@@ -1,0 +1,77 @@
+"""Extraction des indicateurs metier depuis les donnees Banque mondiale."""
+
+import pandas as pd
+
+
+def _select_indicators(data: pd.DataFrame, patterns: list[str]) -> pd.DataFrame:
+	"""Selectionne les lignes dont le libelle correspond a un motif."""
+	required = {"indicator_name", "indicator_code", "year", "value"}
+	missing = required.difference(data.columns)
+	if missing:
+		raise KeyError(f"Colonnes absentes: {', '.join(sorted(missing))}")
+
+	expression = "|".join(f"(?:{pattern})" for pattern in patterns)
+	selected = data.loc[
+		data["indicator_name"].astype("string").str.contains(
+			expression, case=False, regex=True, na=False
+		)
+	].copy()
+	selected["indicator"] = selected["indicator_name"]
+	return selected[["year", "indicator", "indicator_code", "value"]]
+
+
+def extract_electrification(data: pd.DataFrame) -> pd.DataFrame:
+	"""Extrait l'acces a l'electricite et les indicateurs de fiabilite."""
+	return _select_indicators(
+		data,
+		[
+			r"^Access to electricity \(% of population\)$",
+			r"^Access to electricity, rural",
+			r"^Access to electricity, urban",
+			r"Value lost due to electrical outages",
+			r"Firms experiencing electrical outages",
+			r"Time required to get electricity",
+		],
+	)
+
+
+def extract_cooking(data: pd.DataFrame) -> pd.DataFrame:
+	"""Extrait l'acces aux combustibles et technologies de cuisson propres."""
+	return _select_indicators(
+		data,
+		[
+			r"Access to clean fuels and technologies for cooking",
+			r"Main cooking fuel",
+			r"place of cooking",
+			r"location of cooking",
+		],
+	)
+
+
+def extract_forest(data: pd.DataFrame) -> pd.DataFrame:
+	"""Extrait la surface forestiere et les rentes associees."""
+	return _select_indicators(
+		data,
+		[r"Forest area", r"Forest rents", r"net forest depletion"],
+	)
+
+
+def extract_energy_emissions(data: pd.DataFrame) -> pd.DataFrame:
+	"""Extrait les emissions de CO2, CH4 et N2O par secteur."""
+	return _select_indicators(
+		data,
+		[
+			r"^(Carbon dioxide|Methane|Nitrous oxide) \(.*\) emissions from",
+			r"^(Carbon dioxide|Methane|Nitrous oxide) emissions from",
+		],
+	)
+
+
+def extract_key_indicators(data: pd.DataFrame) -> dict[str, pd.DataFrame]:
+	"""Construit les quatre tables d'indicateurs du projet."""
+	return {
+		"electrification": extract_electrification(data),
+		"cooking": extract_cooking(data),
+		"forest": extract_forest(data),
+		"energy_emissions": extract_energy_emissions(data),
+	}

@@ -1,0 +1,43 @@
+"""Page d'analyse de la cuisson et des forets."""
+
+import streamlit as st
+
+from dashboard.common import load_key_data, render_filters, render_page_header, render_source, show_empty_message
+from dashboard.components import initialize_page, insight, kpi_card, render_main_header
+from src.analysis import prepare_cooking_composition, prepare_cooking_forest_series
+from src.viz import cooking_composition_figure, cooking_figure, cooking_forest_figure, renewable_share_figure
+
+st.set_page_config(page_title="Cuisson et forêts | Togo AI Lab", page_icon="🌿", layout="wide")
+initialize_page()
+render_main_header("Cuisson et forêts", "Relier les pratiques de cuisson à la pression potentielle sur le couvert forestier.")
+data = load_key_data()
+selected_year, _, _ = render_filters(data, show_city=False, show_region=False)
+table = prepare_cooking_forest_series(data["indicators"]["cooking"], data["indicators"]["forest"])
+renewable = data["renewable_energy"]
+if selected_year is not None:
+	table = table[table["year"] <= selected_year]
+trenewable = renewable[renewable["date"] <= selected_year] if selected_year is not None else renewable
+if table.empty:
+	show_empty_message()
+else:
+	latest = table.dropna(subset=["wood_charcoal_dependence"])
+	value = latest["wood_charcoal_dependence"].iloc[-1] if not latest.empty else None
+	col1, col2 = st.columns(2)
+	with col1:
+		kpi_card("Bois + charbon", f"{value:.1f} %" if value is not None else "Donnée absente", source="Banque mondiale", accent="cooking")
+	with col2:
+		kpi_card("Année affichée", str(int(table["year"].max())) if not table["year"].dropna().empty else "Donnée absente", source="Banque mondiale", accent="forest")
+	figures = [
+		(cooking_figure(table), "La part bois-charbon reste le signal direct de dépendance aux combustibles traditionnels.", "warning"),
+		(cooking_forest_figure(table), "Les séries nationales évoluent en parallèle; ce rapprochement n'établit pas une causalité.", "warning"),
+		(renewable_share_figure(trenewable), "La part des combustibles renouvelables situe la biomasse dans le mix énergétique global.", ""),
+		(cooking_composition_figure(prepare_cooking_composition(data["indicators"]["cooking"])), "Cette composition identifie les combustibles dominants à la dernière année observée.", ""),
+	]
+	for figure, text, kind in figures:
+		fig_col, insight_col = st.columns([2.5, 1])
+		with fig_col:
+			st.plotly_chart(figure, width="stretch")
+		with insight_col:
+			insight(text, kind)
+	render_source("indicators-tgo.csv et série énergie renouvelable")
+	render_source("indicators-tgo.csv, Banque mondiale")

@@ -1,0 +1,170 @@
+"""Visualisations Plotly reutilisables."""
+
+import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
+
+from config import COLORS
+
+
+def electricity_gap_figure(data: pd.DataFrame) -> go.Figure:
+	"""Construit la figure de l'ecart rural-urbain."""
+	long_data = data.melt(
+		id_vars="year",
+		value_vars=[
+			column
+			for column in data.columns
+			if "rural" in str(column).lower() or "urban" in str(column).lower()
+		],
+		var_name="indicator",
+		value_name="value",
+	)
+	return px.line(
+		long_data,
+		x="year",
+		y="value",
+		color="indicator",
+		title="Accès à l'électricité : urbain contre rural",
+		labels={"year": "Année", "value": "Population couverte (%)", "indicator": "Zone"},
+		color_discrete_sequence=[COLORS["electricity"], COLORS["electricity_light"]],
+	)
+
+
+def electrification_gap_area_figure(data: pd.DataFrame) -> go.Figure:
+	"""Construit l'aire de l'ecart rural-urbain."""
+	return px.area(
+		data,
+		x="year",
+		y="rural_urban_gap",
+		title="Écart d'accès à l'électricité",
+		labels={"year": "Année", "rural_urban_gap": "Écart (points de pourcentage)"},
+		color_discrete_sequence=[COLORS["cooking"]],
+	)
+
+
+def sector_emissions_figure(data: pd.DataFrame) -> go.Figure:
+	"""Construit la figure des emissions par secteur et par gaz."""
+	return px.bar(
+		data,
+		x="secteur",
+		y="emissions_gg",
+		color="type",
+		barmode="stack",
+		title="Émissions de GES par secteur et par gaz",
+		labels={"secteur": "Secteur", "emissions_gg": "Emissions (Gg)"},
+	)
+
+
+def emissions_treemap_figure(data: pd.DataFrame) -> go.Figure:
+	"""Construit une hierarchie secteur puis type de gaz."""
+	data = data.dropna(subset=["secteur", "type", "emissions_gg"])
+	data = data[data["emissions_gg"] > 0]
+	return px.treemap(
+		data,
+		path=["secteur", "type"],
+		values="emissions_gg",
+		color="emissions_gg",
+		title="Hiérarchie des émissions par secteur et par gaz",
+		labels={"emissions_gg": "Émissions (Gg)"},
+		color_continuous_scale=[COLORS["background"], COLORS["emissions"]],
+	)
+
+
+def cooking_figure(data: pd.DataFrame) -> go.Figure:
+	"""Construit la figure de cuisson propre et traditionnelle."""
+	long_data = data.melt(
+		id_vars="year",
+		value_vars=["wood_charcoal_dependence", "clean_cooking_access"],
+		var_name="indicator",
+		value_name="value",
+	)
+	return px.line(
+		long_data,
+		x="year",
+		y="value",
+		color="indicator",
+		title="Cuisson traditionnelle et cuisson propre",
+		labels={"year": "Année", "value": "Ménages (%)", "indicator": "Indicateur"},
+	)
+
+
+def cooking_forest_figure(data: pd.DataFrame) -> go.Figure:
+	"""Construit la comparaison cuisson et surface forestiere normalisee."""
+	figure = go.Figure()
+	for column, name, color in (
+		("wood_charcoal_dependence", "Bois + charbon (%)", COLORS["cooking"]),
+		("clean_cooking_access", "Cuisson propre (%)", COLORS["electricity"]),
+	):
+		if column in data:
+			figure.add_trace(go.Scatter(x=data["year"], y=data[column], name=name, line={"color": color}))
+	if "forest_area_sq_km" in data:
+		figure.add_trace(go.Scatter(x=data["year"], y=data["forest_area_sq_km"], name="Surface forestière (km²)", yaxis="y2", line={"color": COLORS["forest"]}))
+	figure.update_layout(
+		title="Combustibles de cuisson et surface forestière",
+		xaxis_title="Année",
+		yaxis_title="Ménages (%)",
+		yaxis2={"title": "Surface forestière (km²)", "overlaying": "y", "side": "right"},
+		hovermode="x unified",
+	)
+	return figure
+
+
+def temperature_figure(data: pd.DataFrame) -> go.Figure:
+	"""Construit la figure des temperatures annuelles par ville."""
+	return px.line(
+		data,
+		x="annee",
+		y="temperature_moyenne",
+		color="villes",
+		labels={"annee": "Annee", "temperature_moyenne": "Temperature moyenne"},
+	)
+
+
+def temperature_heatmap_figure(data: pd.DataFrame) -> go.Figure:
+	"""Construit la heatmap ville par mois."""
+	return px.density_heatmap(
+		data,
+		x="mois",
+		y="villes",
+		z="temperature_moyenne",
+		title="Température moyenne par ville et par mois",
+		labels={"mois": "Mois", "villes": "Ville", "temperature_moyenne": "Température (°C)"},
+		color_continuous_scale="YlOrRd",
+	)
+
+
+def protected_areas_map_figure(data: pd.DataFrame) -> go.Figure:
+	"""Construit la carte Plotly des zones protegees."""
+	return px.scatter_map(
+		data,
+		lat="centroid_lat",
+		lon="centroid_lon",
+		size="surface_km2",
+		color="vulnerability_score",
+		hover_name="etab_nom",
+		hover_data={"region_nom_bdd": True, "prefecture_nom_bdd": True, "surface_km2": ":.2f", "vulnerability_score": ":.2f"},
+		zoom=5.8,
+		map_style="open-street-map",
+		title="Zones protégées : surface et vulnérabilité relative",
+		color_continuous_scale="YlOrRd",
+	)
+
+
+def regional_zone_count_figure(data: pd.DataFrame) -> go.Figure:
+	"""Construit le nombre de zones protegees par region."""
+	counts = data.groupby("region_nom_bdd", as_index=False).size().rename(columns={"size": "zones"})
+	return px.bar(counts, x="region_nom_bdd", y="zones", title="Nombre de zones protégées par région", labels={"region_nom_bdd": "Région", "zones": "Zones"}, color_discrete_sequence=[COLORS["forest"]])
+
+
+def prioritization_scatter_figure(data: pd.DataFrame) -> go.Figure:
+	"""Construit le nuage de points du classement de priorite."""
+	return px.scatter(
+		data,
+		x="forest_pressure",
+		y="priority_score",
+		size="zones_protegees" if "zones_protegees" in data else None,
+		color="region_nom_bdd" if "region_nom_bdd" in data else None,
+		hover_name="prefecture_nom_bdd" if "prefecture_nom_bdd" in data else None,
+		title="Priorisation : pression forestière et score composite",
+		labels={"forest_pressure": "Surface forestière protégée (km²)", "priority_score": "Score de priorité"},
+	)

@@ -1,0 +1,21 @@
+# Environnements Python
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+
+# Donnees generees
+/data/processed/*.parquet
+/data/processed/*.feather
+
+# Notebooks et outils
+.ipynb_checkpoints/
+.streamlit/secrets.toml
+
+# Editeur et systeme
+.vscode/settings.json
+.DS_Store
+Thumbs.db

@@ -1,0 +1,147 @@
+"""Tests des chargeurs de donnees."""
+
+import pandas as pd
+
+from src.cleaning import clean_temperature_data, normalize_column_names
+from src.data_loader import (
+    load_energy_emissions,
+    load_ghg_by_sector,
+    load_protected_areas,
+    load_protected_areas_dictionary,
+    load_renewable_energy,
+    load_temperatures,
+    load_world_bank_indicators,
+)
+from src.indicators import extract_key_indicators
+from src.analysis import (
+    analyze_electrification,
+    analyze_temperature_trends,
+    build_prioritization_index,
+)
+
+
+def test_load_world_bank_indicators_removes_metadata_row(tmp_path) -> None:
+    """La ligne de codes de metadata est exclue et les types sont convertis."""
+    source = tmp_path / "indicators.csv"
+    source.write_text(
+        "Country Name,Country ISO3,Year,Indicator Name,Indicator Code,Value\n"
+        "#country+name,#country+code,#date+year,#indicator+name,#indicator+code,#indicator+value+num\n"
+        "Togo,TGO,2020,Access to electricity (%),EG.ELC.ACCS.ZS,55.5\n",
+        encoding="utf-8",
+    )
+
+    data = load_world_bank_indicators(source)
+
+    assert len(data) == 1
+    assert data.loc[0, "year"] == 2020
+    assert data.loc[0, "value"] == 55.5
+
+
+def test_load_energy_emissions_converts_empty_value_to_nan(tmp_path) -> None:
+    """Une valeur vide de la serie CO2 devient un NaN numerique."""
+    source = tmp_path / "emissions.csv"
+    source.write_text(
+        "indicator,country,countryiso3code,date,value,unit,obs_status,decimal\n"
+        "CO2,Togo,TGO,2023,,, ,1\n",
+        encoding="utf-8",
+    )
+
+    data = load_energy_emissions(source)
+
+    assert pd.isna(data.loc[0, "value"])
+    assert str(data["date"].dtype) == "Int64"
+
+
+def test_load_remaining_sources_have_expected_rows() -> None:
+    """Les autres chargeurs lisent les sources fournies avec leur cardinalite attendue."""
+    assert len(load_renewable_energy()) == 64
+    assert len(load_ghg_by_sector()) == 20
+    assert len(load_temperatures()) == 1680
+    assert len(load_protected_areas()) == 53
+    assert len(load_protected_areas_dictionary()) > 0
+
+
+def test_clean_temperature_data_parses_valid_and_invalid_periods() -> None:
+    """Les periodes mensuelles sont parsees et les valeurs invalides neutralisees."""
+    source = pd.DataFrame(
+        {"Date": ["2013M1", "2013M13", "invalide"], "Value": ["34", "", "x"]}
+    )
+
+    data = clean_temperature_data(source)
+
+    assert data.loc[0, "annee"] == 2013
+    assert data.loc[0, "mois"] == 1
+    assert data.loc[0, "date_mois"] == pd.Timestamp("2013-01-01")
+    assert pd.isna(data.loc[1, "mois"])
+    assert pd.isna(data.loc[2, "value"])
+
+
+def test_normalize_column_names_removes_accents() -> None:
+    """Les noms accentues sont convertis en noms ASCII homogenes."""
+    data = normalize_column_names(pd.DataFrame({"Libellés régionaux": ["Nord"]}))
+
+    assert list(data.columns) == ["libelles_regionaux"]
+
+
+def test_extract_key_indicators_returns_four_families() -> None:
+    """Les familles metier sont extraites avec un schema commun."""
+    data = extract_key_indicators(load_world_bank_indicators())
+
+    assert set(data) == {"electrification", "cooking", "forest", "energy_emissions"}
+    assert all(not table.empty for table in data.values())
+    assert all(
+        list(table.columns) == ["year", "indicator", "indicator_code", "value"]
+        for table in data.values()
+    )
+
+
+def test_analyze_electrification_calculates_rural_urban_gap() -> None:
+    """L'ecart est calcule comme urbain moins rural."""
+    data = pd.DataFrame(
+        {
+            "year": [2020, 2020],
+            "indicator": [
+                "Access to electricity, rural (% of rural population)",
+                "Access to electricity, urban (% of urban population)",
+            ],
+            "indicator_code": ["R", "U"],
+            "value": [30.0, 70.0],
+        }
+    )
+
+    result = analyze_electrification(data)
+
+    assert result.loc[0, "rural_urban_gap"] == 40.0
+
+
+def test_analyze_temperature_trends_counts_non_missing_values() -> None:
+    """Les observations invalides ne sont pas comptees dans la moyenne."""
+    data = pd.DataFrame(
+        {
+            "date": ["2013M1", "2013M2"],
+            "villes": ["Lome", "Lome"],
+            "value": [30.0, None],
+        }
+    )
+
+    result = analyze_temperature_trends(data)
+
+    assert result.loc[0, "temperature_moyenne"] == 30.0
+    assert result.loc[0, "observations"] == 1
+
+
+def test_build_prioritization_index_returns_descending_scores() -> None:
+    """Le score de priorite est borne et trie du plus eleve au plus faible."""
+    data = pd.DataFrame(
+        {
+            "region": ["A", "B"],
+            "electrification_gap": [80.0, 10.0],
+            "cooking_dependence": [70.0, 20.0],
+            "forest_pressure": [30.0, 5.0],
+        }
+    )
+
+    result = build_prioritization_index(data)
+
+    assert result.loc[0, "region"] == "A"
+    assert result["priority_score"].between(0, 1).all()

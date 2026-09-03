@@ -1,0 +1,18 @@
+"""Page d'analyse de l'electrification."""
+
+import streamlit as st
+
+from dashboard.common import load_key_data, render_global_filters
+from src.analysis import analyze_electrification
+from src.viz import electricity_gap_figure
+
+st.set_page_config(page_title="Electrification", layout="wide")
+st.title("Electrification")
+data = load_key_data()
+selected_year, _, _ = render_global_filters(data)
+table = analyze_electrification(data["indicators"]["electrification"])
+if selected_year is not None:
+	table = table[table["year"] <= selected_year]
+st.plotly_chart(electricity_gap_figure(table), width="stretch")
+st.caption("L'ecart rural-urbain est calcule comme le taux urbain moins le taux rural.")
+st.dataframe(table, width="stretch", hide_index=True)
